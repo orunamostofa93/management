@@ -956,7 +956,7 @@
           <div style="background:var(--primary-ultra-light);border:1.5px solid var(--border);border-radius:8px;padding:12px;margin-top:4px;">
             <div style="font-size:12px;font-weight:700;color:var(--primary);margin-bottom:6px;">🔗 অভিভাবক পোর্টাল লিংক</div>
             <div style="display:flex;gap:8px;align-items:center;">
-              <input id="parentPortalLink" type="text" readonly value="https://teal-conkies-7c6502.netlify.app/parent.html" style="font-size:12px;background:#fff;font-family:monospace;">
+              <input id="parentPortalLink" type="text" readonly value="https://orunamostofa93.github.io/management/parent.html" style="font-size:12px;background:#fff;font-family:monospace;">
               <button class="btn btn-sm btn-accent" onclick="copyParentLink()">📋 কপি</button>
             </div>
             <div style="font-size:11px;color:var(--text-muted);margin-top:4px;">এই লিংকটি অভিভাবকদের শেয়ার করুন।</div>
@@ -2691,7 +2691,7 @@ function renderIDCard() {
   var principal = data.settings.principal||'অধ্যক্ষ';
 
   // QR profile link (parent portal)
-  var qrData = encodeURIComponent('https://teal-conkies-7c6502.netlify.app/parent.html?code='+(person.code||id));
+  var qrData = encodeURIComponent('https://orunamostofa93.github.io/management/parent.html?code='+(person.code||id));
   var qrUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=80x80&data='+qrData;
 
   // Photo
