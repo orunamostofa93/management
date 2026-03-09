@@ -346,7 +346,7 @@
 <body>
 
 <!-- LOGIN SCREEN -->
-<div id="loginScreen" style="display:none;position:fixed;inset:0;background:linear-gradient(135deg,#1a4a2e 0%,#0f2e1a 60%,#2d7a4f 100%);z-index:9999;align-items:center;justify-content:center;font-family:'Noto Sans Bengali',sans-serif;">
+<div id="loginScreen" style="display:flex;position:fixed;inset:0;background:linear-gradient(135deg,#1a4a2e 0%,#0f2e1a 60%,#2d7a4f 100%);z-index:9999;align-items:center;justify-content:center;font-family:'Noto Sans Bengali',sans-serif;">
   <div style="background:#fff;border-radius:16px;padding:36px 32px;width:340px;max-width:95vw;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,0.4);">
     <div style="font-size:52px;margin-bottom:10px;">🕌</div>
     <div style="font-size:17px;font-weight:700;color:var(--primary);margin-bottom:4px;" id="loginInstName">মাদ্রাসা ম্যানেজমেন্ট</div>
@@ -362,7 +362,7 @@
 </div>
 
 <!-- Sidebar -->
-<nav id="sidebar">
+<nav id="sidebar" style="display:none">
   <div class="sidebar-header">
     <div class="sidebar-logo">🕌</div>
     <div class="sidebar-title" id="instName">মাদ্রাসা ম্যানেজমেন্ট</div>
@@ -397,7 +397,7 @@
 </nav>
 
 <!-- Main -->
-<div id="main">
+<div id="main" style="display:none">
   <div id="header">
     <div class="header-title" id="pageTitle">ড্যাশবোর্ড</div>
     <div class="header-date" id="headerDate"></div>
@@ -1729,7 +1729,7 @@ function showLoading(show) {
   if(!el) {
     el = document.createElement('div');
     el.id = 'loadingOverlay';
-    el.style.cssText = 'position:fixed;inset:0;background:rgba(26,74,46,0.92);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;font-family:Noto Sans Bengali,sans-serif;';
+    el.style.cssText = 'position:fixed;inset:0;background:rgba(26,74,46,0.92);z-index:99999;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;font-family:Noto Sans Bengali,sans-serif;';
     el.innerHTML = '<div style="font-size:48px;margin-bottom:16px;">🕌</div><div style="font-size:18px;font-weight:700;margin-bottom:8px;">An Nazah Tahfizul Quran Madrsa</div><div style="font-size:14px;opacity:.8;margin-bottom:24px;">Firebase থেকে ডেটা লোড হচ্ছে...</div><div style="width:48px;height:48px;border:4px solid rgba(255,255,255,0.3);border-top-color:#c9a227;border-radius:50%;animation:spin 0.8s linear infinite;"></div><style>@keyframes spin{to{transform:rotate(360deg)}}</style>';
     document.body.appendChild(el);
   }
