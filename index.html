@@ -370,7 +370,7 @@
   </div>
   <div class="sidebar-nav">
     <div class="nav-section">প্রধান</div>
-    <div class="nav-item active" onclick="showPage('dashboard')"><span class="nav-icon">📊</span> ড্যাশবোর্ড</div>
+    <div class="nav-item" onclick="showPage('dashboard')"><span class="nav-icon">📊</span> ড্যাশবোর্ড</div>
     <div class="nav-section">শিক্ষার্থী</div>
     <div class="nav-item" onclick="showPage('students')"><span class="nav-icon">👨‍🎓</span> শিক্ষার্থী তালিকা</div>
     <div class="nav-item" onclick="showPage('fee')"><span class="nav-icon">💳</span> ফী আদায়</div>
@@ -437,7 +437,7 @@
     </div>
 
     <!-- DASHBOARD -->
-    <div id="page-dashboard" class="page active">
+    <div id="page-dashboard" class="page">
       <!-- Universal Search -->
       <div class="card mb-16" style="border:2px solid var(--primary);">
         <div class="card-body" style="padding:14px;">
@@ -4774,7 +4774,7 @@ function doLogin() {
   if(pin === adminPin) {
     currentUser = { role:'admin', name:'প্রশাসক', pin };
     sessionStorage.setItem('mms_user', JSON.stringify(currentUser));
-    hideLoginScreen(); applyAccess(); init();
+    hideLoginScreen(); applyAccess();
     return;
   }
   // Teacher/Staff PIN check
@@ -5213,11 +5213,7 @@ function init() {
   document.getElementById('instSub').textContent=data.settings.sub||'ব্যবস্থাপনা সিস্টেম';
   document.getElementById('loginInstName').textContent=data.settings.name||'মাদ্রাসা ম্যানেজমেন্ট';
   populateClassDropdowns();
-  // সব পেজ hide করে dashboard দেখাও
-  document.querySelectorAll('.page').forEach(function(p){p.classList.remove('active');});
-  var dp = document.getElementById('page-dashboard');
-  if(dp) dp.classList.add('active');
-  renderDashboard();
+  showPage('dashboard');
   const today=new Date().toISOString().split('T')[0];
   ['attDate','fDate','nDate','leaveFrom','leaveTo','sAdmDate','tJoin','qpDate'].forEach(id=>{
     const el=document.getElementById(id); if(el&&!el.value) el.value=today;
