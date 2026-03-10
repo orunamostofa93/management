@@ -446,7 +446,7 @@
         <div class="card-body" style="padding:14px;">
           <div style="display:flex;gap:10px;align-items:center;">
             <span style="font-size:20px;">🔍</span>
-            <input id="universalSearch" type="text" placeholder="কোড দিয়ে সার্চ: AN-PL-001, AN-TCH-001, AN-PRI-001 অথবা নাম লিখুন..."
+            <input id="universalSearch" type="text" placeholder="কোড দিয়ে সার্চ: AN-PL-001-X7K2 অথবা নাম লিখুন..."
               style="flex:1;padding:10px 14px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-family:inherit;font-size:14px;"
               oninput="universalSearchHandler(this.value)">
             <button class="btn btn-primary" onclick="universalSearchHandler(document.getElementById('universalSearch').value)">সার্চ</button>
@@ -1893,6 +1893,13 @@ var ENGLISH_REGEX = /^[A-Za-z\s\.\,\-\']+$/;
 // মোবাইল: শুধু ০-৯ (ইংরেজি) এবং সংখ্যা
 var MOBILE_REGEX = /^[0-9]+$/;
 
+function bn2en(str) {
+  // বাংলা সংখ্যা → English: ০১২৩৪৫৬৭৮৯ → 0123456789
+  return String(str).replace(/[০-৯]/g, function(d) {
+    return String('০১২৩৪৫৬৭৮৯'.indexOf(d));
+  });
+}
+
 function validateBangla(el) {
   const val = el.value;
   if(!val) { clearFieldError(el); return; }
@@ -2102,15 +2109,14 @@ function renderDashboard() {
 function renderTodayAbsent() {
   var today = new Date().toISOString().split('T')[0];
   var absentStudents = [];
-  // সব ক্লাসের আজকের attendance দেখো
   Object.entries(data.attendance).forEach(function([key, val]) {
     if(!key.endsWith('_'+today)) return;
     var cls = key.replace('_'+today,'');
     Object.entries(val).forEach(function([sid, status]) {
-      if(sid.startsWith('_')) return; // skip metadata
+      if(sid.startsWith('_')) return;
       if(status==='অনুপস্থিত') {
         var s = (data.students||[]).find(function(x){ return x.id===sid; });
-        if(s) absentStudents.push({...s, cls});
+        if(s) absentStudents.push(Object.assign({},s,{cls:cls}));
       }
     });
   });
@@ -2133,19 +2139,31 @@ function renderTodayAbsent() {
       '<th style="background:var(--danger);color:#fff;padding:8px;">শ্রেণি</th>'+
       '<th style="background:var(--danger);color:#fff;padding:8px;">রোল</th>'+
       '<th style="background:var(--danger);color:#fff;padding:8px;">পিতার নাম</th>'+
-      '<th style="background:var(--danger);color:#fff;padding:8px;">মোবাইল</th>'+
-      '<th style="background:var(--danger);color:#fff;padding:8px;">কাজ</th>'+
+      '<th style="background:var(--danger);color:#fff;padding:8px;">যোগাযোগ</th>'+
     '</tr></thead><tbody>'+
     absentStudents.map(function(s){
+      var mobiles = getContactMobiles(s);
+      var callBtn = '';
+      if(mobiles.length===0) {
+        callBtn = '-';
+      } else if(mobiles.length===1) {
+        callBtn = '<a href="tel:'+mobiles[0].num+'" class="btn btn-primary btn-sm" style="font-size:11px;">📞 কল ('+mobiles[0].label+')</a>';
+      } else {
+        // একাধিক নম্বর → dropdown
+        var opts = mobiles.map(function(m){
+          return '<option value="'+m.num+'">'+m.label+': '+m.num+'</option>';
+        }).join('');
+        callBtn = '<div style="display:flex;gap:4px;align-items:center;">'+
+          '<select id="mob-'+s.id+'" style="font-size:11px;padding:3px 6px;border:1px solid var(--border);border-radius:5px;font-family:monospace;">'+opts+'</select>'+
+          '<button class="btn btn-primary btn-sm" style="font-size:11px;" onclick="var s=document.getElementById(\'mob-'+s.id+'\');window.location.href=\'tel:\'+s.value">📞 কল</button>'+
+        '</div>';
+      }
       return '<tr>'+
         '<td style="padding:8px;font-weight:600;">'+s.name+'</td>'+
         '<td style="padding:8px;text-align:center;">'+s.cls+'</td>'+
         '<td style="padding:8px;text-align:center;">'+s.roll+'</td>'+
-        '<td style="padding:8px;">'+( s.father||'-')+'</td>'+
-        '<td style="padding:8px;font-family:monospace;">'+(s.mobile||'-')+'</td>'+
-        '<td style="padding:8px;">'+
-          (s.mobile?'<a href="tel:'+s.mobile+'" class="btn btn-primary btn-sm" style="font-size:11px;">📞 কল</a>':'-')+
-        '</td>'+
+        '<td style="padding:8px;">'+(s.father||'-')+'</td>'+
+        '<td style="padding:8px;">'+callBtn+'</td>'+
       '</tr>';
     }).join('')+
     '</tbody></table></div>';
@@ -2297,7 +2315,7 @@ function previewStudentCode() {
 function addStudent() {
   const name = document.getElementById('sName').value.trim();
   const cls = document.getElementById('sClass').value;
-  const roll = document.getElementById('sRoll').value;
+  const roll = bn2en(document.getElementById('sRoll').value);
   if(!name||!cls) { toast('নাম ও শ্রেণি আবশ্যক!','error'); return; }
   if(!roll) { toast('রোল নম্বর দিন!','error'); return; }
   if(data.students.find(s=>s.cls===cls && String(s.roll)===String(roll))) {
@@ -2348,34 +2366,107 @@ function calcTeacherDue(tid) {
   const totalDue = monthsSince * Number(t.salary||0);
   return Math.max(0, totalDue - paid);
 }
+function getContactMobile(s) {
+  // priority: বাবার মোবাইল → মায়ের মোবাইল → student মোবাইল
+  return s.fatherMobile||s.motherMobile||s.mobile||'';
+}
+
+function getContactMobiles(s) {
+  // সব unique নম্বরের list
+  var nums = [];
+  if(s.fatherMobile) nums.push({num:s.fatherMobile, label:'বাবা'});
+  if(s.motherMobile && s.motherMobile!==s.fatherMobile) nums.push({num:s.motherMobile, label:'মা'});
+  if(s.mobile && s.mobile!==s.fatherMobile && s.mobile!==s.motherMobile) nums.push({num:s.mobile, label:'শিক্ষার্থী'});
+  return nums;
+}
+
 function renderStudents() {
   const search = document.getElementById('studentSearch')?.value?.toLowerCase()||'';
   const cls = document.getElementById('studentClassFilter')?.value||'';
   populateClassDropdowns();
   let list = data.students.filter(s=>{
-    const matchSearch = s.name?.toLowerCase().includes(search)||String(s.roll).includes(search);
+    const matchSearch = s.name?.toLowerCase().includes(search)||String(s.roll).includes(search)||(s.code||'').toLowerCase().includes(search);
     const matchCls = !cls||s.cls===cls;
     return matchSearch&&matchCls;
   });
   document.getElementById('studentsBody').innerHTML = list.map(s=>{
     const due = calcStudentDue(s.id);
-    return `<tr>
+    const mobile = getContactMobile(s);
+    return `<tr id="strow-${s.id}">
       <td><span class="badge badge-green">${s.roll}</span></td>
       <td><span style="font-family:monospace;font-size:11px;background:#e8f5e9;color:var(--primary);padding:2px 6px;border-radius:4px;font-weight:700;">${s.code||'-'}</span></td>
       <td><b>${s.name}</b></td>
       <td>${s.father||'-'}</td>
       <td><span class="badge badge-blue">${s.cls}</span></td>
-      <td>${s.mobile||'-'}</td>
+      <td style="font-family:monospace;font-size:12px;">${mobile||'-'}</td>
       <td>৳ ${Number(s.fee||0).toLocaleString('bn-BD')}</td>
       <td><span class="badge ${due>0?'badge-red':'badge-green'}">${due>0?'৳ '+due.toLocaleString('bn-BD'):'পরিশোধিত'}</span></td>
       <td>
         <button class="btn btn-primary btn-sm" onclick="openStudentProfile('${s.id}')">👁 প্রোফাইল</button>
-        <button class="btn btn-accent btn-sm" onclick="editStudent('${s.id}')">✏️ এডিট</button>
+        <button class="btn btn-accent btn-sm" onclick="quickEditStudent('${s.id}')">✏️ এডিট</button>
         <button class="btn btn-accent btn-sm" onclick="openFeeModal('${s.id}','student')">💰 ফি</button>
         <button class="btn btn-danger btn-sm" onclick="deleteStudent('${s.id}')">✕</button>
       </td>
     </tr>`;
   }).join('')||'<tr><td colspan="9" style="text-align:center;color:var(--text-muted);padding:20px;">কোনো শিক্ষার্থী পাওয়া যায়নি।</td></tr>';
+}
+
+function quickEditStudent(id) {
+  const s = data.students.find(x=>x.id===id);
+  if(!s) return;
+  const row = document.getElementById('strow-'+id);
+  if(!row) return;
+  // inline edit row দেখাও
+  row.innerHTML = `
+    <td colspan="9" style="padding:8px;background:#f0f7f0;">
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+        <div style="display:flex;flex-direction:column;gap:2px;">
+          <label style="font-size:10px;color:var(--text-muted);">নাম</label>
+          <input id="qe-name-${id}" value="${s.name||''}" style="padding:5px 8px;border:1.5px solid var(--primary);border-radius:6px;font-family:inherit;font-size:13px;width:140px;">
+        </div>
+        <div style="display:flex;flex-direction:column;gap:2px;">
+          <label style="font-size:10px;color:var(--text-muted);">শ্রেণি</label>
+          <select id="qe-cls-${id}" style="padding:5px 8px;border:1.5px solid var(--primary);border-radius:6px;font-family:inherit;font-size:13px;">
+            ${(data.settings.classes||[]).map(c=>`<option value="${c}"${c===s.cls?' selected':''}>${c}</option>`).join('')}
+          </select>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:2px;">
+          <label style="font-size:10px;color:var(--text-muted);">রোল</label>
+          <input id="qe-roll-${id}" value="${s.roll||''}" type="text" style="padding:5px 8px;border:1.5px solid var(--primary);border-radius:6px;font-family:monospace;font-size:13px;width:60px;">
+        </div>
+        <div style="display:flex;flex-direction:column;gap:2px;">
+          <label style="font-size:10px;color:var(--text-muted);">বেতন (৳)</label>
+          <input id="qe-fee-${id}" value="${s.fee||0}" type="number" style="padding:5px 8px;border:1.5px solid var(--primary);border-radius:6px;font-size:13px;width:80px;">
+        </div>
+        <div style="display:flex;gap:6px;align-items:flex-end;padding-bottom:1px;">
+          <button class="btn btn-primary btn-sm" onclick="saveQuickEdit('${id}')">💾 সেভ</button>
+          <button class="btn btn-outline btn-sm" onclick="renderStudents()">বাতিল</button>
+          <button class="btn btn-accent btn-sm" onclick="editStudent('${id}')">🔧 পূর্ণ এডিট</button>
+        </div>
+      </div>
+    </td>`;
+}
+
+function saveQuickEdit(id) {
+  const s = data.students.find(x=>x.id===id);
+  if(!s) return;
+  const newName = document.getElementById('qe-name-'+id)?.value?.trim();
+  const newCls  = document.getElementById('qe-cls-'+id)?.value;
+  const newRoll = bn2en(document.getElementById('qe-roll-'+id)?.value||'');
+  const newFee  = document.getElementById('qe-fee-'+id)?.value;
+  if(!newName) { toast('নাম খালি রাখা যাবে না!','error'); return; }
+  if(!newRoll) { toast('রোল দিন!','error'); return; }
+  // duplicate roll check (same class, different student)
+  if(data.students.find(x=>x.id!==id && x.cls===newCls && String(x.roll)===String(newRoll))) {
+    toast(newCls+' ক্লাসে রোল '+newRoll+' আগে থেকেই আছে!','error'); return;
+  }
+  s.name = newName;
+  s.cls  = newCls;
+  s.roll = Number(newRoll);
+  s.fee  = Number(newFee)||0;
+  save('students');
+  renderStudents();
+  toast(newName+' আপডেট হয়েছে ✅');
 }
 function deleteStudent(id) {
   if(!confirm('শিক্ষার্থীর তথ্য মুছে ফেলবেন?')) return;
@@ -2426,7 +2517,7 @@ function editStudent(id) {
     s.motherEn = document.getElementById('sMotherEn').value;
     s.motherNID = document.getElementById('sMotherNID').value;
     s.cls = document.getElementById('sClass').value;
-    s.roll = Number(document.getElementById('sRoll').value)||s.roll;
+    s.roll = Number(bn2en(document.getElementById('sRoll').value))||s.roll;
     s.branch = document.getElementById('sBranch').value;
     s.dob = document.getElementById('sDOB').value;
     s.gender = document.getElementById('sGender').value;
@@ -5175,7 +5266,7 @@ function parseImportCSV(text) {
       name:cols[0]||'', nameEn:cols[1]||'',
       father:cols[2]||'', fatherEn:cols[3]||'',
       mother:cols[4]||'', motherEn:cols[5]||'',
-      cls:cols[6]||'', roll:cols[7]||'',
+      cls:cols[6]||'', roll:bn2en(cols[7]||''),
       branch:cols[8]||'সাধারণ', gender:cols[9]||'পুরুষ',
       dob:cols[10]||'', blood:cols[11]||'',
       mobile:cols[12]||'', fatherMobile:cols[13]||'', motherMobile:cols[14]||'',
