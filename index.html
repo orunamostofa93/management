@@ -2449,27 +2449,51 @@ function startQE(sid, field, type) {
   var valEl = document.getElementById('qev-'+sid+'-'+field);
   var iconEl = document.getElementById('qei-'+sid+'-'+field);
   if(!valEl) return;
-  var cur = valEl.textContent;
-  valEl.innerHTML = `<input id="qeinput-${sid}-${field}" value="${cur}"
-    type="${type}" style="width:${type==='number'?'70px':'120px'};padding:2px 6px;border:1.5px solid var(--primary);border-radius:5px;font-family:inherit;font-size:13px;"
-    onkeydown="if(event.key==='Enter')saveQE('${sid}','${field}');if(event.key==='Escape')cancelQE('${sid}','${field}','${cur}')">`;
+  var cur = valEl.textContent.trim();
+  var inp = document.createElement('input');
+  inp.id = 'qeinput-'+sid+'-'+field;
+  inp.value = cur;
+  inp.type = type;
+  inp.style.cssText = 'width:'+(type==='number'?'70px':'120px')+';padding:2px 6px;border:1.5px solid var(--primary);border-radius:5px;font-family:inherit;font-size:13px;';
+  inp.addEventListener('keydown', function(e){
+    if(e.key==='Enter'){ e.preventDefault(); saveQE(sid,field); }
+    if(e.key==='Escape'){ e.preventDefault(); cancelQE(); }
+  });
+  var cancelBtn = document.createElement('button');
+  cancelBtn.textContent = '✕';
+  cancelBtn.style.cssText = 'background:none;border:none;cursor:pointer;font-size:14px;color:#c0392b;padding:0 3px;line-height:1;font-weight:700;';
+  cancelBtn.addEventListener('click', function(){ cancelQE(); });
+  valEl.innerHTML = '';
+  valEl.appendChild(inp);
+  valEl.appendChild(cancelBtn);
   iconEl.innerHTML = '💾';
   iconEl.style.display='inline';
   iconEl.onclick = function(){ saveQE(sid, field); };
-  document.getElementById('qeinput-'+sid+'-'+field)?.focus();
+  inp.focus(); inp.select();
 }
 
 function startQESelect(sid, field) {
   var valEl = document.getElementById('qev-'+sid+'-'+field);
   var iconEl = document.getElementById('qei-'+sid+'-'+field);
   if(!valEl) return;
-  var cur = valEl.textContent;
-  var opts = (data.settings.classes||[]).map(function(c){
-    return '<option value="'+c+'"'+(c===cur?' selected':'')+'>'+c+'</option>';
-  }).join('');
-  valEl.innerHTML = `<select id="qeinput-${sid}-${field}"
-    style="padding:2px 6px;border:1.5px solid var(--primary);border-radius:5px;font-family:inherit;font-size:12px;">
-    ${opts}</select>`;
+  var cur = valEl.textContent.trim();
+  var sel = document.createElement('select');
+  sel.id = 'qeinput-'+sid+'-'+field;
+  sel.style.cssText = 'padding:2px 6px;border:1.5px solid var(--primary);border-radius:5px;font-family:inherit;font-size:12px;';
+  (data.settings.classes||[]).forEach(function(c){
+    var o = document.createElement('option');
+    o.value = c; o.textContent = c;
+    if(c===cur) o.selected = true;
+    sel.appendChild(o);
+  });
+  sel.addEventListener('keydown', function(e){ if(e.key==='Escape'){ e.preventDefault(); cancelQE(); } });
+  var cancelBtn = document.createElement('button');
+  cancelBtn.textContent = '✕';
+  cancelBtn.style.cssText = 'background:none;border:none;cursor:pointer;font-size:14px;color:#c0392b;padding:0 3px;line-height:1;font-weight:700;';
+  cancelBtn.addEventListener('click', function(){ cancelQE(); });
+  valEl.innerHTML = '';
+  valEl.appendChild(sel);
+  valEl.appendChild(cancelBtn);
   iconEl.innerHTML = '💾';
   iconEl.style.display='inline';
   iconEl.onclick = function(){ saveQE(sid, field); };
@@ -2506,11 +2530,8 @@ function saveQE(sid, field) {
   toast('আপডেট হয়েছে ✅','success');
 }
 
-function cancelQE(sid, field, original) {
-  var valEl = document.getElementById('qev-'+sid+'-'+field);
-  var iconEl = document.getElementById('qei-'+sid+'-'+field);
-  if(valEl) valEl.innerHTML = original;
-  if(iconEl) { iconEl.innerHTML='✏️'; iconEl.style.display='none'; }
+function cancelQE() {
+  renderStudents();
 }
 
 function quickEditStudent(id) { editStudent(id); } // fallback
