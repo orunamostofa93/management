@@ -2393,17 +2393,17 @@ function renderStudents() {
     const due = calcStudentDue(s.id);
     const mobile = getContactMobile(s);
     return `<tr id="strow-${s.id}">
-      <td><span class="badge badge-green">${s.roll}</span></td>
+      <td>${renderEditCell(s.id,'roll',s.roll,'number')}</td>
       <td><span style="font-family:monospace;font-size:11px;background:#e8f5e9;color:var(--primary);padding:2px 6px;border-radius:4px;font-weight:700;">${s.code||'-'}</span></td>
-      <td><b>${s.name}</b></td>
+      <td>${renderEditCell(s.id,'name',s.name,'text')}</td>
       <td>${s.father||'-'}</td>
-      <td><span class="badge badge-blue">${s.cls}</span></td>
+      <td>${renderEditCellSelect(s.id,'cls',s.cls)}</td>
       <td style="font-family:monospace;font-size:12px;">${mobile||'-'}</td>
-      <td>৳ ${Number(s.fee||0).toLocaleString('bn-BD')}</td>
+      <td>${renderEditCell(s.id,'fee',s.fee||0,'number')}</td>
       <td><span class="badge ${due>0?'badge-red':'badge-green'}">${due>0?'৳ '+due.toLocaleString('bn-BD'):'পরিশোধিত'}</span></td>
       <td>
         <button class="btn btn-primary btn-sm" onclick="openStudentProfile('${s.id}')">👁 প্রোফাইল</button>
-        <button class="btn btn-accent btn-sm" onclick="quickEditStudent('${s.id}')">✏️ এডিট</button>
+        <button class="btn btn-accent btn-sm" onclick="editStudent('${s.id}')">🔧 পূর্ণ এডিট</button>
         <button class="btn btn-accent btn-sm" onclick="openFeeModal('${s.id}','student')">💰 ফি</button>
         <button class="btn btn-danger btn-sm" onclick="deleteStudent('${s.id}')">✕</button>
       </td>
@@ -2411,63 +2411,109 @@ function renderStudents() {
   }).join('')||'<tr><td colspan="9" style="text-align:center;color:var(--text-muted);padding:20px;">কোনো শিক্ষার্থী পাওয়া যায়নি।</td></tr>';
 }
 
-function quickEditStudent(id) {
-  const s = data.students.find(x=>x.id===id);
-  if(!s) return;
-  const row = document.getElementById('strow-'+id);
-  if(!row) return;
-  // inline edit row দেখাও
-  row.innerHTML = `
-    <td colspan="9" style="padding:8px;background:#f0f7f0;">
-      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
-        <div style="display:flex;flex-direction:column;gap:2px;">
-          <label style="font-size:10px;color:var(--text-muted);">নাম</label>
-          <input id="qe-name-${id}" value="${s.name||''}" style="padding:5px 8px;border:1.5px solid var(--primary);border-radius:6px;font-family:inherit;font-size:13px;width:140px;">
-        </div>
-        <div style="display:flex;flex-direction:column;gap:2px;">
-          <label style="font-size:10px;color:var(--text-muted);">শ্রেণি</label>
-          <select id="qe-cls-${id}" style="padding:5px 8px;border:1.5px solid var(--primary);border-radius:6px;font-family:inherit;font-size:13px;">
-            ${(data.settings.classes||[]).map(c=>`<option value="${c}"${c===s.cls?' selected':''}>${c}</option>`).join('')}
-          </select>
-        </div>
-        <div style="display:flex;flex-direction:column;gap:2px;">
-          <label style="font-size:10px;color:var(--text-muted);">রোল</label>
-          <input id="qe-roll-${id}" value="${s.roll||''}" type="text" style="padding:5px 8px;border:1.5px solid var(--primary);border-radius:6px;font-family:monospace;font-size:13px;width:60px;">
-        </div>
-        <div style="display:flex;flex-direction:column;gap:2px;">
-          <label style="font-size:10px;color:var(--text-muted);">বেতন (৳)</label>
-          <input id="qe-fee-${id}" value="${s.fee||0}" type="number" style="padding:5px 8px;border:1.5px solid var(--primary);border-radius:6px;font-size:13px;width:80px;">
-        </div>
-        <div style="display:flex;gap:6px;align-items:flex-end;padding-bottom:1px;">
-          <button class="btn btn-primary btn-sm" onclick="saveQuickEdit('${id}')">💾 সেভ</button>
-          <button class="btn btn-outline btn-sm" onclick="renderStudents()">বাতিল</button>
-          <button class="btn btn-accent btn-sm" onclick="editStudent('${id}')">🔧 পূর্ণ এডিট</button>
-        </div>
-      </div>
-    </td>`;
+function renderEditCell(sid, field, value, type) {
+  return `<span class="qe-cell" id="qec-${sid}-${field}"
+    style="display:inline-flex;align-items:center;gap:4px;cursor:pointer;"
+    onmouseenter="showQEIcon('${sid}','${field}')"
+    onmouseleave="hideQEIcon('${sid}','${field}')">
+    <span class="qe-val" id="qev-${sid}-${field}">${value}</span>
+    <span class="qe-icon" id="qei-${sid}-${field}"
+      style="display:none;font-size:12px;color:var(--primary);cursor:pointer;opacity:.7;"
+      onclick="startQE('${sid}','${field}','${type}')">✏️</span>
+  </span>`;
 }
 
-function saveQuickEdit(id) {
-  const s = data.students.find(x=>x.id===id);
-  if(!s) return;
-  const newName = document.getElementById('qe-name-'+id)?.value?.trim();
-  const newCls  = document.getElementById('qe-cls-'+id)?.value;
-  const newRoll = bn2en(document.getElementById('qe-roll-'+id)?.value||'');
-  const newFee  = document.getElementById('qe-fee-'+id)?.value;
-  if(!newName) { toast('নাম খালি রাখা যাবে না!','error'); return; }
-  if(!newRoll) { toast('রোল দিন!','error'); return; }
-  // duplicate roll check (same class, different student)
-  if(data.students.find(x=>x.id!==id && x.cls===newCls && String(x.roll)===String(newRoll))) {
-    toast(newCls+' ক্লাসে রোল '+newRoll+' আগে থেকেই আছে!','error'); return;
-  }
-  s.name = newName;
-  s.cls  = newCls;
-  s.roll = Number(newRoll);
-  s.fee  = Number(newFee)||0;
-  save('students');
-  renderStudents();
-  toast(newName+' আপডেট হয়েছে ✅');
+function renderEditCellSelect(sid, field, value) {
+  return `<span class="qe-cell" id="qec-${sid}-${field}"
+    style="display:inline-flex;align-items:center;gap:4px;cursor:pointer;"
+    onmouseenter="showQEIcon('${sid}','${field}')"
+    onmouseleave="hideQEIcon('${sid}','${field}')">
+    <span class="qe-val badge badge-blue" id="qev-${sid}-${field}">${value}</span>
+    <span class="qe-icon" id="qei-${sid}-${field}"
+      style="display:none;font-size:12px;color:var(--primary);cursor:pointer;opacity:.7;"
+      onclick="startQESelect('${sid}','${field}')">✏️</span>
+  </span>`;
 }
+
+function showQEIcon(sid, field) {
+  var el = document.getElementById('qei-'+sid+'-'+field);
+  if(el) el.style.display='inline';
+}
+function hideQEIcon(sid, field) {
+  var el = document.getElementById('qei-'+sid+'-'+field);
+  // শুধু লুকাও যদি editing না হয়
+  if(el && !document.getElementById('qeinput-'+sid+'-'+field)) el.style.display='none';
+}
+
+function startQE(sid, field, type) {
+  var valEl = document.getElementById('qev-'+sid+'-'+field);
+  var iconEl = document.getElementById('qei-'+sid+'-'+field);
+  if(!valEl) return;
+  var cur = valEl.textContent;
+  valEl.innerHTML = `<input id="qeinput-${sid}-${field}" value="${cur}"
+    type="${type}" style="width:${type==='number'?'70px':'120px'};padding:2px 6px;border:1.5px solid var(--primary);border-radius:5px;font-family:inherit;font-size:13px;"
+    onkeydown="if(event.key==='Enter')saveQE('${sid}','${field}');if(event.key==='Escape')cancelQE('${sid}','${field}','${cur}')">`;
+  iconEl.innerHTML = '💾';
+  iconEl.style.display='inline';
+  iconEl.onclick = function(){ saveQE(sid, field); };
+  document.getElementById('qeinput-'+sid+'-'+field)?.focus();
+}
+
+function startQESelect(sid, field) {
+  var valEl = document.getElementById('qev-'+sid+'-'+field);
+  var iconEl = document.getElementById('qei-'+sid+'-'+field);
+  if(!valEl) return;
+  var cur = valEl.textContent;
+  var opts = (data.settings.classes||[]).map(function(c){
+    return '<option value="'+c+'"'+(c===cur?' selected':'')+'>'+c+'</option>';
+  }).join('');
+  valEl.innerHTML = `<select id="qeinput-${sid}-${field}"
+    style="padding:2px 6px;border:1.5px solid var(--primary);border-radius:5px;font-family:inherit;font-size:12px;">
+    ${opts}</select>`;
+  iconEl.innerHTML = '💾';
+  iconEl.style.display='inline';
+  iconEl.onclick = function(){ saveQE(sid, field); };
+}
+
+function saveQE(sid, field) {
+  var s = data.students.find(function(x){ return x.id===sid; });
+  if(!s) return;
+  var inputEl = document.getElementById('qeinput-'+sid+'-'+field);
+  if(!inputEl) return;
+  var newVal = inputEl.value;
+  if(field==='roll') newVal = bn2en(newVal);
+  if(field==='name' && !newVal.trim()) { toast('নাম খালি রাখা যাবে না!','error'); return; }
+  if(field==='roll') {
+    if(!newVal) { toast('রোল দিন!','error'); return; }
+    if(data.students.find(function(x){ return x.id!==sid && x.cls===s.cls && String(x.roll)===String(newVal); })) {
+      toast(s.cls+' ক্লাসে রোল '+newVal+' আগে থেকেই আছে!','error'); return;
+    }
+    s.roll = Number(newVal);
+  } else if(field==='fee') {
+    s.fee = Number(newVal)||0;
+  } else {
+    s[field] = newVal;
+  }
+  save('students');
+  // cell আপডেট করো — re-render না করে
+  var valEl = document.getElementById('qev-'+sid+'-'+field);
+  var iconEl = document.getElementById('qei-'+sid+'-'+field);
+  if(valEl) {
+    if(field==='cls') valEl.outerHTML = `<span class="qe-val badge badge-blue" id="qev-${sid}-${field}">${s[field]}</span>`;
+    else { valEl.innerHTML = field==='fee'? s.fee : s[field]; }
+  }
+  if(iconEl) { iconEl.innerHTML='✏️'; iconEl.style.display='none'; iconEl.onclick=function(){ field==='cls'?startQESelect(sid,field):startQE(sid,field,field==='roll'||field==='fee'?'number':'text'); }; }
+  toast('আপডেট হয়েছে ✅','success');
+}
+
+function cancelQE(sid, field, original) {
+  var valEl = document.getElementById('qev-'+sid+'-'+field);
+  var iconEl = document.getElementById('qei-'+sid+'-'+field);
+  if(valEl) valEl.innerHTML = original;
+  if(iconEl) { iconEl.innerHTML='✏️'; iconEl.style.display='none'; }
+}
+
+function quickEditStudent(id) { editStudent(id); } // fallback
 function deleteStudent(id) {
   if(!confirm('শিক্ষার্থীর তথ্য মুছে ফেলবেন?')) return;
   data.students = data.students.filter(s=>s.id!==id); save('students'); renderStudents(); toast('শিক্ষার্থী মুছে ফেলা হয়েছে।','error');
