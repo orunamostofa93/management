@@ -46,6 +46,11 @@
     padding:20px 18px 14px; border-bottom:1px solid rgba(255,255,255,0.1);
     text-align:center;
   }
+  .theme-swatch {
+    width: 32px; height: 32px; border-radius: 50%; cursor: pointer;
+    border: 3px solid transparent; transition: all .2s;
+  }
+  .theme-swatch:hover, .theme-swatch.active { border-color: #fff; box-shadow: 0 0 0 2px var(--primary); transform: scale(1.15); }
   .sidebar-logo {
     width:54px; height:54px; background:var(--accent); border-radius:50%;
     display:flex; align-items:center; justify-content:center; margin:0 auto 8px;
@@ -349,7 +354,7 @@
 <!-- LOGIN SCREEN -->
 <div id="loginScreen" style="display:flex;position:fixed;inset:0;background:linear-gradient(135deg,#1a4a2e 0%,#0f2e1a 60%,#2d7a4f 100%);z-index:9999;align-items:center;justify-content:center;font-family:'Noto Sans Bengali',sans-serif;">
   <div style="background:#fff;border-radius:16px;padding:36px 32px;width:340px;max-width:95vw;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,0.4);">
-    <div style="font-size:52px;margin-bottom:10px;">🕌</div>
+    <div id="loginLogo" style="font-size:52px;margin-bottom:10px;width:80px;height:80px;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 10px;overflow:hidden;">🕌</div>
     <div style="font-size:17px;font-weight:700;color:var(--primary);margin-bottom:4px;" id="loginInstName">মাদ্রাসা ম্যানেজমেন্ট</div>
     <div style="font-size:12px;color:var(--text-muted);margin-bottom:24px;">ব্যবস্থাপনা সিস্টেম</div>
     <div style="text-align:left;margin-bottom:8px;font-size:13px;font-weight:600;color:var(--text);">🔐 আপনার PIN দিন</div>
@@ -365,7 +370,7 @@
 <!-- Sidebar -->
 <nav id="sidebar" style="display:none">
   <div class="sidebar-header">
-    <div class="sidebar-logo">🕌</div>
+    <div class="sidebar-logo" id="sidebarLogo">🕌</div>
     <div class="sidebar-title" id="instName">মাদ্রাসা ম্যানেজমেন্ট</div>
     <div class="sidebar-sub" id="instSub">ব্যবস্থাপনা সিস্টেম</div>
   </div>
@@ -388,7 +393,11 @@
     <div class="nav-item" onclick="showPage('exampaper')"><span class="nav-icon">📄</span> প্রশ্নপত্র তৈরি</div>
     <div class="nav-section">অর্থ</div>
     <div class="nav-item" onclick="showPage('finance')"><span class="nav-icon">💰</span> আয়-ব্যয়</div>
+    <div class="nav-section">শিক্ষার্থী ব্যবস্থাপনা</div>
+    <div class="nav-item" onclick="showPage('promote')"><span class="nav-icon">🎓</span> শ্রেণি উন্নীত</div>
+    <div class="nav-item" onclick="showPage('whatsapp')"><span class="nav-icon">📲</span> WhatsApp টেমপ্লেট</div>
     <div class="nav-section">অন্যান্য</div>
+    <div class="nav-item" onclick="showPage('hostel')"><span class="nav-icon">🏠</span> হোস্টেল ব্যবস্থাপনা</div>
     <div class="nav-item" onclick="showPage('notice')"><span class="nav-icon">📢</span> বিজ্ঞপ্তি</div>
     <div class="nav-item" onclick="showPage('letters')"><span class="nav-icon">📜</span> পত্র ও প্রমাণপত্র</div>
     <div class="nav-item" onclick="showPage('idcard')"><span class="nav-icon">🪪</span> আইডি কার্ড</div>
@@ -932,13 +941,174 @@
       </div>
     </div>
 
+
+    <!-- STUDENT PROMOTION PAGE -->
+    <div id="page-promote" class="page">
+      <div class="card mb-16">
+        <div class="card-header">
+          <span class="card-title">🎓 শ্রেণি উন্নীত (Promotion)</span>
+        </div>
+        <div class="card-body">
+          <div style="background:#fff8e1;border:1.5px solid #f59e0b;border-radius:8px;padding:14px;margin-bottom:16px;">
+            <div style="font-weight:700;color:#92400e;margin-bottom:6px;">⚠️ সতর্কতা</div>
+            <div style="font-size:13px;color:#78350f;">শ্রেণি উন্নীত করলে শিক্ষার্থীদের বর্তমান শ্রেণি পরিবর্তন হয়ে যাবে। এটি করার আগে অবশ্যই ব্যাকআপ নিন।</div>
+          </div>
+          <div style="margin-bottom:16px;">
+            <label style="font-weight:600;font-size:13px;display:block;margin-bottom:8px;">শিক্ষাবর্ষ পরিবর্তন</label>
+            <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+              <div>
+                <label style="font-size:11px;color:var(--text-muted);">বর্তমান বর্ষ</label>
+                <input id="promoteFromSession" type="text" placeholder="যেমন: ২০২৪" style="display:block;max-width:120px;font-weight:700;">
+              </div>
+              <div style="font-size:20px;color:var(--text-muted);">→</div>
+              <div>
+                <label style="font-size:11px;color:var(--text-muted);">নতুন বর্ষ</label>
+                <input id="promoteToSession" type="text" placeholder="যেমন: ২০২৫" style="display:block;max-width:120px;font-weight:700;">
+              </div>
+              <button class="btn btn-accent" onclick="updateSession()">📅 শিক্ষাবর্ষ আপডেট করুন</button>
+            </div>
+          </div>
+          <hr class="section-divider">
+          <label style="font-weight:600;font-size:13px;display:block;margin-bottom:12px;">শ্রেণি অনুযায়ী উন্নীত করুন</label>
+          <div id="promoteClassList" style="display:flex;flex-direction:column;gap:10px;"></div>
+          <div style="margin-top:16px;display:flex;gap:10px;flex-wrap:wrap;">
+            <button class="btn btn-primary" onclick="renderPromotePage()">🔄 রিফ্রেশ</button>
+            <button class="btn btn-accent" onclick="promoteAll()">🎓 সব শ্রেণি একসাথে উন্নীত করুন</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- WHATSAPP TEMPLATE PAGE -->
+    <div id="page-whatsapp" class="page">
+      <div class="card mb-16">
+        <div class="card-header"><span class="card-title">📲 WhatsApp মেসেজ টেমপ্লেট</span></div>
+        <div class="card-body">
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px;margin-bottom:20px;">
+            <div style="border:1.5px solid var(--border);border-radius:10px;padding:14px;">
+              <div style="font-weight:700;margin-bottom:8px;">💰 ফি বকেয়া রিমাইন্ডার</div>
+              <div style="display:flex;flex-direction:column;gap:8px;">
+                <div><label style="font-size:11px;color:var(--text-muted);">শিক্ষার্থী নির্বাচন করুন</label>
+                <select id="waStudentSelect" onchange="generateWAFee()" style="width:100%;font-family:inherit;padding:6px;border:1px solid var(--border);border-radius:6px;">
+                  <option value="">-- শিক্ষার্থী বেছে নিন --</option>
+                </select></div>
+                <textarea id="waFeeMsg" rows="6" style="width:100%;font-family:inherit;padding:8px;border:1px solid var(--border);border-radius:6px;font-size:12px;resize:vertical;box-sizing:border-box;" readonly></textarea>
+                <div style="display:flex;gap:8px;">
+                  <button class="btn btn-primary btn-sm" onclick="copyWAMsg('waFeeMsg')">📋 কপি</button>
+                  <button class="btn btn-accent btn-sm" onclick="sendWAMsg('waFeeMsg','waStudentSelect')">📲 WhatsApp এ পাঠান</button>
+                </div>
+              </div>
+            </div>
+            <div style="border:1.5px solid var(--border);border-radius:10px;padding:14px;">
+              <div style="font-weight:700;margin-bottom:8px;">❌ অনুপস্থিতি নোটিশ</div>
+              <div style="display:flex;flex-direction:column;gap:8px;">
+                <div><label style="font-size:11px;color:var(--text-muted);">শিক্ষার্থী নির্বাচন করুন</label>
+                <select id="waAbsentSelect" onchange="generateWAAbsent()" style="width:100%;font-family:inherit;padding:6px;border:1px solid var(--border);border-radius:6px;">
+                  <option value="">-- শিক্ষার্থী বেছে নিন --</option>
+                </select></div>
+                <textarea id="waAbsentMsg" rows="6" style="width:100%;font-family:inherit;padding:8px;border:1px solid var(--border);border-radius:6px;font-size:12px;resize:vertical;box-sizing:border-box;" readonly></textarea>
+                <div style="display:flex;gap:8px;">
+                  <button class="btn btn-primary btn-sm" onclick="copyWAMsg('waAbsentMsg')">📋 কপি</button>
+                  <button class="btn btn-accent btn-sm" onclick="sendWAMsg('waAbsentMsg','waAbsentSelect')">📲 WhatsApp এ পাঠান</button>
+                </div>
+              </div>
+            </div>
+            <div style="border:1.5px solid var(--border);border-radius:10px;padding:14px;">
+              <div style="font-weight:700;margin-bottom:8px;">📢 সাধারণ বিজ্ঞপ্তি</div>
+              <div style="display:flex;flex-direction:column;gap:8px;">
+                <div><label style="font-size:11px;color:var(--text-muted);">বার্তা লিখুন</label>
+                <textarea id="waCustomMsg" rows="4" placeholder="আপনার বার্তা এখানে লিখুন..." style="width:100%;font-family:inherit;padding:8px;border:1px solid var(--border);border-radius:6px;font-size:12px;resize:vertical;box-sizing:border-box;" oninput="generateWACustom()"></textarea></div>
+                <textarea id="waCustomFinal" rows="5" style="width:100%;font-family:inherit;padding:8px;border:1px solid var(--border);border-radius:6px;font-size:12px;resize:vertical;box-sizing:border-box;" readonly></textarea>
+                <button class="btn btn-primary btn-sm" onclick="copyWAMsg('waCustomFinal')">📋 কপি করুন</button>
+              </div>
+            </div>
+          </div>
+          <div style="background:var(--primary-ultra-light);border-radius:8px;padding:14px;">
+            <div style="font-weight:700;margin-bottom:8px;">📱 সব অভিভাবকদের ফোন নম্বর</div>
+            <div id="waAllNumbers" style="font-family:monospace;font-size:12px;line-height:1.8;max-height:200px;overflow-y:auto;"></div>
+            <button class="btn btn-sm btn-primary" style="margin-top:8px;" onclick="copyAllNumbers()">📋 সব নম্বর কপি</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- HOSTEL PAGE -->
+    <div id="page-hostel" class="page">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;" class="responsive-grid-2">
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">🏠 রুম ব্যবস্থাপনা</span>
+            <button class="btn btn-primary btn-sm" onclick="openHostelRoomModal()">+ নতুন রুম</button>
+          </div>
+          <div class="card-body" id="hostelRoomList">লোড হচ্ছে...</div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">👤 রুম বরাদ্দ</span>
+            <button class="btn btn-accent btn-sm" onclick="openAssignRoomModal()">+ বরাদ্দ দিন</button>
+          </div>
+          <div class="card-body" id="hostelAssignList">লোড হচ্ছে...</div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header"><span class="card-title">📊 হোস্টেল সারসংক্ষেপ</span></div>
+        <div class="card-body" id="hostelSummary">লোড হচ্ছে...</div>
+      </div>
+    </div>
+
     <!-- SETTINGS -->
     <div id="page-settings" class="page">
       <div class="card">
         <div class="card-header"><span class="card-title">⚙️ প্রতিষ্ঠানের তথ্য</span></div>
         <div class="card-body">
+          <!-- Logo + Mode -->
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;align-items:start;">
+            <div>
+              <label style="font-size:12px;font-weight:600;color:var(--text-muted);display:block;margin-bottom:6px;">প্রতিষ্ঠানের লোগো</label>
+              <div style="display:flex;align-items:center;gap:12px;">
+                <div id="logoPreview" style="width:70px;height:70px;border-radius:50%;border:2px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:36px;background:var(--primary-ultra-light);overflow:hidden;">🏫</div>
+                <div>
+                  <input type="file" id="logoFileInput" accept="image/*" style="display:none" onchange="handleLogoUpload(this)">
+                  <button class="btn btn-outline btn-sm" onclick="document.getElementById('logoFileInput').click()">📁 লোগো আপলোড</button>
+                  <button class="btn btn-sm" style="background:#fee;color:#c00;border:1px solid #fcc;margin-top:4px;" onclick="removeLogo()">✕ মুছুন</button>
+                  <div style="font-size:10px;color:var(--text-muted);margin-top:4px;">JPG/PNG, সর্বোচ্চ ২ MB</div>
+                </div>
+              </div>
+            </div>
+            <div>
+              <label style="font-size:12px;font-weight:600;color:var(--text-muted);display:block;margin-bottom:6px;">প্রতিষ্ঠানের ধরন</label>
+              <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                <label style="display:flex;align-items:center;gap:6px;cursor:pointer;padding:8px 14px;border:2px solid var(--border);border-radius:8px;font-size:13px;" id="modeLabel-madrasa">
+                  <input type="radio" name="instMode" value="madrasa" id="modeRadio-madrasa" onchange="applyInstMode(this.value)"> 🕌 মাদ্রাসা
+                </label>
+                <label style="display:flex;align-items:center;gap:6px;cursor:pointer;padding:8px 14px;border:2px solid var(--border);border-radius:8px;font-size:13px;" id="modeLabel-school">
+                  <input type="radio" name="instMode" value="school" id="modeRadio-school" onchange="applyInstMode(this.value)"> 🏫 স্কুল
+                </label>
+              </div>
+              <div style="margin-top:10px;">
+                <label style="font-size:12px;font-weight:600;color:var(--text-muted);display:block;margin-bottom:4px;">শিক্ষাবর্ষ</label>
+                <input id="setSession" type="text" placeholder="যেমন: ২০২৫, ২০২৪-২৫" style="max-width:160px;font-weight:700;">
+              </div>
+            </div>
+          </div>
+          <!-- Color theme -->
+          <div style="margin-bottom:16px;">
+            <label style="font-size:12px;font-weight:600;color:var(--text-muted);display:block;margin-bottom:8px;">🎨 কালার থিম</label>
+            <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+              <div class="theme-swatch" data-color="#1a4a2e" data-light="#2d7a4f" data-ulight="#e8f5ee" style="background:#1a4a2e;" title="সবুজ (ডিফল্ট)" onclick="applyTheme('#1a4a2e','#2d7a4f','#e8f5ee',this)"></div>
+              <div class="theme-swatch" data-color="#1a3a5c" data-light="#2563ab" data-ulight="#e8f0fe" style="background:#1a3a5c;" title="নীল" onclick="applyTheme('#1a3a5c','#2563ab','#e8f0fe',this)"></div>
+              <div class="theme-swatch" data-color="#6b21a8" data-light="#9333ea" data-ulight="#f3e8ff" style="background:#6b21a8;" title="বেগুনি" onclick="applyTheme('#6b21a8','#9333ea','#f3e8ff',this)"></div>
+              <div class="theme-swatch" data-color="#92400e" data-light="#d97706" data-ulight="#fef3c7" style="background:#92400e;" title="বাদামি" onclick="applyTheme('#92400e','#d97706','#fef3c7',this)"></div>
+              <div class="theme-swatch" data-color="#991b1b" data-light="#dc2626" data-ulight="#fee2e2" style="background:#991b1b;" title="লাল" onclick="applyTheme('#991b1b','#dc2626','#fee2e2',this)"></div>
+              <div style="display:flex;align-items:center;gap:6px;">
+                <input type="color" id="customColorPicker" value="#1a4a2e" style="width:36px;height:36px;border:none;padding:0;cursor:pointer;border-radius:50%;" oninput="applyCustomTheme(this.value)">
+                <span style="font-size:11px;color:var(--text-muted);">কাস্টম রং</span>
+              </div>
+            </div>
+          </div>
+          <hr class="section-divider">
           <div class="form-grid">
-            <div class="form-group"><label>মাদ্রাসার নাম</label><input id="setInstName" type="text" placeholder="মাদ্রাসার পূর্ণ নাম"></div>
+            <div class="form-group"><label id="labelInstName">মাদ্রাসার নাম</label><input id="setInstName" type="text" placeholder="প্রতিষ্ঠানের পূর্ণ নাম"></div>
             <div class="form-group"><label>কোডের জন্য সংক্ষেপ (২-৩ অক্ষর)</label><input id="setInstAbbr" type="text" placeholder="যেমন: AN, MQ, IQ" maxlength="4" style="text-transform:uppercase;font-family:monospace;font-weight:700;" oninput="this.value=this.value.toUpperCase()"></div>
             <div class="form-group"><label>সংক্ষিপ্ত পরিচয়</label><input id="setInstSub" type="text" placeholder="যেমন: দাখিল মাদ্রাসা, ঢাকা"></div>
             <div class="form-group"><label>ঠিকানা</label><input id="setAddress" type="text" placeholder="গ্রাম, উপজেলা, জেলা"></div>
@@ -1795,7 +1965,7 @@ var data = {
   results: [], finance: [], notices: [],
   leaves: [], routine: [], syllabus: [],
   feePayments: [], staffCheckins: [], payrollAdj: [], stock: [], letters: [], onlinePayments: [],
-  studentRemarks: [],
+  studentRemarks: [], hostelRooms: [], hostelAssignments: [],
 };
 
 // পুরনো রেকর্ডে ইউনিক কোড না থাকলে assign করো
@@ -1846,7 +2016,7 @@ function migrateOldCodes() {
 // Firebase থেকে ডেটা লোড করুন
 async function loadFromFirebase() {
   showLoading(true);
-  const keys = ['settings','students','teachers','attendance','results','finance','notices','leaves','routine','syllabus','feePayments','staffCheckins','payrollAdj','stock','letters','onlinePayments','studentRemarks'];
+  const keys = ['settings','students','teachers','attendance','results','finance','notices','leaves','routine','syllabus','feePayments','staffCheckins','payrollAdj','stock','letters','onlinePayments','studentRemarks','hostelRooms','hostelAssignments'];
   for(const k of keys) {
     try {
       const snap = await db.collection('madrasa').doc(k).get();
@@ -1985,6 +2155,9 @@ function showPage(id) {
   if(id==='dashboard') renderDashboard();
   if(id==='students') { renderStudents(); populateClassDropdowns(); }
   if(id==='attendance') { populateAttDropdowns(); let d=new Date(); document.getElementById('attDate').value=d.toISOString().split('T')[0]; }
+  if(id==='promote') renderPromotePage();
+  if(id==='whatsapp') renderWAPage();
+  if(id==='hostel') renderHostelPage();
   if(id==='results') { renderResults(); populateResultDropdowns(); }
   if(id==='teachers') renderTeachers();
   if(id==='leave') renderLeaves();
@@ -2053,17 +2226,47 @@ function populateIDDropdown() {
 
 // ===================== DASHBOARD =====================
 function renderDashboard() {
-  // Stats
+  const today = new Date().toISOString().split('T')[0];
   const incomeTotal = data.finance.filter(f=>f.type==='আয়').reduce((a,b)=>a+Number(b.amount),0);
   const expenseTotal = data.finance.filter(f=>f.type==='ব্যয়').reduce((a,b)=>a+Number(b.amount),0);
-  document.getElementById('statsGrid').innerHTML = `
-    <div class="stat-card"><div class="stat-icon green">👨‍🎓</div><div><div class="stat-label">মোট শিক্ষার্থী</div><div class="stat-value">${data.students.length}</div><div class="stat-sub">নথিভুক্ত</div></div></div>
-    <div class="stat-card"><div class="stat-icon gold">👨‍🏫</div><div><div class="stat-label">শিক্ষক ও স্টাফ</div><div class="stat-value">${data.teachers.length}</div><div class="stat-sub">কর্মরত</div></div></div>
-    <div class="stat-card"><div class="stat-icon blue">💰</div><div><div class="stat-label">মোট আয়</div><div class="stat-value">${incomeTotal.toLocaleString('bn-BD')}</div><div class="stat-sub">টাকা</div></div></div>
-    <div class="stat-card"><div class="stat-icon red">💸</div><div><div class="stat-label">মোট ব্যয়</div><div class="stat-value">${expenseTotal.toLocaleString('bn-BD')}</div><div class="stat-sub">টাকা</div></div></div>
-    <div class="stat-card"><div class="stat-icon green">📋</div><div><div class="stat-label">মোট ফলাফল</div><div class="stat-value">${data.results.length}</div><div class="stat-sub">এন্ট্রি</div></div></div>
-    <div class="stat-card"><div class="stat-icon gold">📢</div><div><div class="stat-label">বিজ্ঞপ্তি</div><div class="stat-value">${data.notices.length}</div><div class="stat-sub">প্রকাশিত</div></div></div>
-  `;
+  // আজকের হাজিরা
+  var presentToday=0, absentToday=0;
+  Object.entries(data.attendance||{}).forEach(function([k,v]){
+    if(!k.endsWith('_'+today)) return;
+    Object.entries(v).forEach(function([sid,st]){ if(sid.startsWith('_')) return; if(st==='উপস্থিত') presentToday++; else if(st==='অনুপস্থিত') absentToday++; });
+  });
+  var attTotal = presentToday+absentToday;
+  var attPct = attTotal>0 ? Math.round(presentToday/attTotal*100) : 0;
+  // এই মাসের ফি
+  var monthStr = today.slice(0,7);
+  var monthlyFeeTarget = data.students.reduce(function(a,s){ return a+Number(s.fee||0); },0);
+  var monthlyFeePaid = (data.feePayments||[]).filter(function(p){ return (p.date||'').slice(0,7)===monthStr; }).reduce(function(a,b){ return a+Number(b.amount); },0);
+  var feePct = monthlyFeeTarget>0 ? Math.min(100,Math.round(monthlyFeePaid/monthlyFeeTarget*100)) : 0;
+  // Pending leaves
+  var pendingLeaves = (data.leaves||[]).filter(function(l){ return l.status==='অপেক্ষমাণ'||l.status==='pending'; }).length;
+  // আজকের জন্মদিন
+  var todayMD = today.slice(5);
+  var birthdays = (data.students||[]).filter(function(s){ return s.dob && s.dob.slice(5)===todayMD; });
+  document.getElementById('statsGrid').innerHTML =
+    '<div class="stat-card"><div class="stat-icon green">👨‍🎓</div><div><div class="stat-label">মোট শিক্ষার্থী</div><div class="stat-value">'+data.students.length+'</div><div class="stat-sub">নথিভুক্ত</div></div></div>'+
+    '<div class="stat-card"><div class="stat-icon gold">👨‍🏫</div><div><div class="stat-label">শিক্ষক ও স্টাফ</div><div class="stat-value">'+data.teachers.length+'</div><div class="stat-sub">কর্মরত</div></div></div>'+
+    '<div class="stat-card"><div class="stat-icon blue">💰</div><div><div class="stat-label">মোট আয়</div><div class="stat-value">'+incomeTotal.toLocaleString('bn-BD')+'</div><div class="stat-sub">টাকা</div></div></div>'+
+    '<div class="stat-card"><div class="stat-icon red">💸</div><div><div class="stat-label">মোট ব্যয়</div><div class="stat-value">'+expenseTotal.toLocaleString('bn-BD')+'</div><div class="stat-sub">টাকা</div></div></div>'+
+    '<div class="stat-card" style="cursor:pointer;" onclick="showPage(\'attendance\')">'+
+      '<div class="stat-icon green">✅</div><div><div class="stat-label">আজকের হাজিরা</div>'+
+      '<div class="stat-value">'+attPct+'%</div>'+
+      '<div style="margin-top:6px;background:#ddd;border-radius:4px;height:6px;"><div style="background:var(--primary);width:'+attPct+'%;height:100%;border-radius:4px;transition:.3s;"></div></div>'+
+      '<div class="stat-sub">'+presentToday+' উপস্থিত / '+absentToday+' অনুপস্থিত</div></div></div>'+
+    '<div class="stat-card" style="cursor:pointer;" onclick="showPage(\'fee\')">'+
+      '<div class="stat-icon gold">💳</div><div><div class="stat-label">এ মাসের ফি আদায়</div>'+
+      '<div class="stat-value">৳ '+monthlyFeePaid.toLocaleString()+'</div>'+
+      '<div style="margin-top:6px;background:#ddd;border-radius:4px;height:6px;"><div style="background:#c9a227;width:'+feePct+'%;height:100%;border-radius:4px;transition:.3s;"></div></div>'+
+      '<div class="stat-sub">লক্ষ্য: ৳ '+monthlyFeeTarget.toLocaleString()+'</div></div></div>'+
+    (pendingLeaves>0 ? '<div class="stat-card" style="cursor:pointer;background:#fff8e1;" onclick="showPage(\'leave\')">'+
+      '<div class="stat-icon" style="background:#fff3cd;">⏳</div><div><div class="stat-label">ছুটির আবেদন</div><div class="stat-value" style="color:#d97706;">'+pendingLeaves+'</div><div class="stat-sub">অনুমোদন বাকি</div></div></div>' : '')+
+    (birthdays.length>0 ? '<div class="stat-card" style="background:#fff0f6;">'+
+      '<div class="stat-icon" style="background:#ffe4f0;">🎂</div><div><div class="stat-label">আজকের জন্মদিন</div><div class="stat-value" style="color:#e91e8c;">'+birthdays.length+'</div>'+
+      '<div class="stat-sub">'+birthdays.slice(0,2).map(function(s){ return s.name; }).join(', ')+(birthdays.length>2?' ...':'')+ '</div></div></div>' : '');
   // Recent notices
   const rn = document.getElementById('recentNotices');
   if(data.notices.length===0) { rn.innerHTML='<p class="text-muted">কোনো বিজ্ঞপ্তি নেই।</p>'; }
@@ -2072,7 +2275,6 @@ function renderDashboard() {
       <div><div style="font-weight:700;font-size:13px;">${n.title}</div><div style="font-size:11px;margin-top:2px;">${n.date||''} — ${n.ntype}</div></div>
     </div>`).join(''); }
   // Today summary
-  const today = new Date().toISOString().split('T')[0];
   const todayFin = data.finance.filter(f=>f.date===today);
   const todayAtt = Object.entries(data.attendance).filter(([k])=>k.includes('_'+today));
   document.getElementById('todaySummary').innerHTML = `
@@ -2350,20 +2552,28 @@ function addStudent() {
   document.getElementById('sPhotoPreview').style.display='none';
   renderStudents(); toast(`${name} ভর্তি হয়েছে। কোড: ${code} ✅`);
 }
+function calcMonthsBetween(startDate) {
+  if(!startDate) return 1;
+  var start = new Date(startDate);
+  var now = new Date();
+  if(start > now) return 0;
+  var months = (now.getFullYear()-start.getFullYear())*12 + (now.getMonth()-start.getMonth());
+  return Math.max(1, months+1);
+}
 function calcStudentDue(sid) {
   const s = data.students.find(x=>x.id===sid);
   if(!s) return 0;
   const paid = data.feePayments.filter(f=>f.personId===sid&&f.feeType==='মাসিক বেতন').reduce((a,b)=>a+Number(b.amount),0);
-  const monthsSince = s.admDate ? Math.max(1, Math.ceil((new Date()-new Date(s.admDate))/(1000*60*60*24*30))) : 1;
-  const totalDue = monthsSince * Number(s.fee||0);
+  const months = calcMonthsBetween(s.admDate);
+  const totalDue = months * Number(s.fee||0);
   return Math.max(0, totalDue - paid);
 }
 function calcTeacherDue(tid) {
   const t = data.teachers.find(x=>x.id===tid);
   if(!t) return 0;
   const paid = data.feePayments.filter(f=>f.personId===tid).reduce((a,b)=>a+Number(b.amount),0);
-  const monthsSince = t.join ? Math.max(1, Math.ceil((new Date()-new Date(t.join))/(1000*60*60*24*30))) : 1;
-  const totalDue = monthsSince * Number(t.salary||0);
+  const months = calcMonthsBetween(t.join);
+  const totalDue = months * Number(t.salary||0);
   return Math.max(0, totalDue - paid);
 }
 function getContactMobile(s) {
@@ -2412,28 +2622,32 @@ function renderStudents() {
 }
 
 function renderEditCell(sid, field, value, type) {
-  return `<span class="qe-cell" id="qec-${sid}-${field}"
-    style="display:inline-flex;align-items:center;gap:4px;cursor:pointer;"
-    onmouseenter="showQEIcon('${sid}','${field}')"
-    onmouseleave="hideQEIcon('${sid}','${field}')">
-    <span class="qe-val" id="qev-${sid}-${field}">${value}</span>
-    <span class="qe-icon" id="qei-${sid}-${field}"
-      style="display:none;font-size:12px;color:var(--primary);cursor:pointer;opacity:.7;"
-      onclick="startQE('${sid}','${field}','${type}')">✏️</span>
-  </span>`;
+  return '<span class="qe-cell" id="qec-'+sid+'-'+field+'"'+
+    ' style="display:inline-flex;align-items:center;gap:4px;cursor:pointer;"'+
+    ' onmouseenter="showQEIcon(\''+sid+'\',\''+field+'\')" onmouseleave="hideQEIcon(\''+sid+'\',\''+field+'\')">'+
+    '<span class="qe-val" id="qev-'+sid+'-'+field+'">'+value+'</span>'+
+    '<span class="qe-icon" id="qei-'+sid+'-'+field+'"'+
+    ' style="display:none;font-size:12px;color:var(--primary);cursor:pointer;opacity:.7;"'+
+    ' onclick="startQE(\''+sid+'\',\''+field+'\',\''+type+'\')" ontouchstart="startQE(\''+sid+'\',\''+field+'\',\''+type+'\');event.preventDefault();">✏️</span>'+
+    '</span>';
 }
 
 function renderEditCellSelect(sid, field, value) {
-  return `<span class="qe-cell" id="qec-${sid}-${field}"
-    style="display:inline-flex;align-items:center;gap:4px;cursor:pointer;"
-    onmouseenter="showQEIcon('${sid}','${field}')"
-    onmouseleave="hideQEIcon('${sid}','${field}')">
-    <span class="qe-val badge badge-blue" id="qev-${sid}-${field}">${value}</span>
-    <span class="qe-icon" id="qei-${sid}-${field}"
-      style="display:none;font-size:12px;color:var(--primary);cursor:pointer;opacity:.7;"
-      onclick="startQESelect('${sid}','${field}')">✏️</span>
-  </span>`;
+  return '<span class="qe-cell" id="qec-'+sid+'-'+field+'"'+
+    ' style="display:inline-flex;align-items:center;gap:4px;cursor:pointer;"'+
+    ' onmouseenter="showQEIcon(\''+sid+'\',\''+field+'\')" onmouseleave="hideQEIcon(\''+sid+'\',\''+field+'\')">'+
+    '<span class="qe-val badge badge-blue" id="qev-'+sid+'-'+field+'">'+value+'</span>'+
+    '<span class="qe-icon" id="qei-'+sid+'-'+field+'"'+
+    ' style="display:none;font-size:12px;color:var(--primary);cursor:pointer;opacity:.7;"'+
+    ' onclick="startQESelect(\''+sid+'\',\''+field+'\')" ontouchstart="startQESelect(\''+sid+'\',\''+field+'\');event.preventDefault();">✏️</span>'+
+    '</span>';
 }
+// Mobile: touch এ সব edit icons দেখাই
+document.addEventListener('DOMContentLoaded', function() {
+  if('ontouchstart' in window) {
+    document.body.classList.add('touch-device');
+  }
+});
 
 function showQEIcon(sid, field) {
   var el = document.getElementById('qei-'+sid+'-'+field);
@@ -2532,6 +2746,336 @@ function saveQE(sid, field) {
 
 function cancelQE() {
   renderStudents();
+}
+
+
+// ===================== LOGO & THEME =====================
+function handleLogoUpload(input) {
+  var file = input.files[0];
+  if(!file) return;
+  if(file.size > 2*1024*1024) { toast('লোগো ২ MB এর বেশি হতে পারবে না!','error'); return; }
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    var base64 = e.target.result;
+    data.settings.logo = base64;
+    save('settings');
+    applyLogoToUI(base64);
+    document.getElementById('logoPreview').innerHTML = '<img src="'+base64+'" style="width:100%;height:100%;object-fit:cover;">';
+    toast('লোগো আপলোড হয়েছে ✅');
+  };
+  reader.readAsDataURL(file);
+}
+function removeLogo() {
+  data.settings.logo = '';
+  save('settings');
+  document.getElementById('logoPreview').innerHTML = '🏫';
+  applyLogoToUI('');
+  toast('লোগো মুছে ফেলা হয়েছে।');
+}
+function applyLogoToUI(logoSrc) {
+  var mode = data.settings.instMode||'madrasa';
+  var emoji = mode==='school' ? '🏫' : '🕌';
+  var logoHtml = logoSrc ? '<img src="'+logoSrc+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">' : emoji;
+  var logoImgHtml = logoSrc ? '<img src="'+logoSrc+'" style="width:60px;height:60px;object-fit:cover;border-radius:50%;">' : '<div style="font-size:52px;">'+emoji+'</div>';
+  var sidebar = document.getElementById('sidebarLogo');
+  if(sidebar) sidebar.innerHTML = logoHtml;
+  var loginLogo = document.getElementById('loginLogo');
+  if(loginLogo) loginLogo.innerHTML = logoImgHtml;
+}
+function applyTheme(color, light, ulight, el) {
+  applyThemeColor(color, light, ulight);
+  data.settings.themeColor = color;
+  data.settings.themeLight = light;
+  data.settings.themeUlight = ulight;
+  // active swatch
+  document.querySelectorAll('.theme-swatch').forEach(function(s){ s.classList.remove('active'); });
+  if(el) el.classList.add('active');
+}
+function applyCustomTheme(color) {
+  // Generate light/ultralight from color
+  applyThemeColor(color, color, color+'22');
+  data.settings.themeColor = color;
+  data.settings.themeLight = color;
+  data.settings.themeUlight = color+'22';
+}
+function applyThemeColor(color, light, ulight) {
+  var root = document.documentElement;
+  root.style.setProperty('--primary', color);
+  root.style.setProperty('--primary-light', light||color);
+  root.style.setProperty('--primary-ultra-light', ulight||(color+'22'));
+}
+
+// ===================== INST MODE =====================
+function applyInstMode(mode) {
+  data.settings.instMode = mode;
+  applyInstModeUI(mode);
+}
+function applyInstModeUI(mode) {
+  var isSchool = mode==='school';
+  // Label পরিবর্তন
+  var nameLabel = document.getElementById('labelInstName');
+  if(nameLabel) nameLabel.textContent = isSchool ? 'স্কুলের নাম' : 'মাদ্রাসার নাম';
+  // Sidebar emoji
+  if(!data.settings.logo) {
+    var sb = document.getElementById('sidebarLogo');
+    if(sb) sb.textContent = isSchool ? '🏫' : '🕌';
+    var ll = document.getElementById('loginLogo');
+    if(ll) ll.textContent = isSchool ? '🏫' : '🕌';
+  }
+  // Mode label highlight
+  ['madrasa','school'].forEach(function(m) {
+    var lbl = document.getElementById('modeLabel-'+m);
+    if(lbl) lbl.style.borderColor = m===mode ? 'var(--primary)' : 'var(--border)';
+    if(lbl) lbl.style.background = m===mode ? 'var(--primary-ultra-light)' : '';
+  });
+}
+
+// ===================== STUDENT PROMOTION =====================
+function renderPromotePage() {
+  var classes = data.settings.classes||[];
+  var html = classes.map(function(cls) {
+    var students = data.students.filter(function(s){ return s.cls===cls; });
+    return '<div style="border:1.5px solid var(--border);border-radius:10px;padding:14px;background:#fff;">'+
+      '<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">'+
+        '<div><span class="badge badge-blue" style="font-size:14px;">'+cls+'</span> '+
+        '<span style="font-size:13px;color:var(--text-muted);margin-left:8px;">'+students.length+' জন শিক্ষার্থী</span></div>'+
+        '<div style="display:flex;align-items:center;gap:8px;">'+
+          '<span style="font-size:12px;">উন্নীত করব:</span>'+
+          '<select id="promTo-'+cls.replace(/\s/g,'_')+'" style="padding:4px 8px;border:1px solid var(--border);border-radius:6px;font-family:inherit;">'+
+            '<option value="">-- নতুন শ্রেণি --</option>'+
+            classes.filter(function(c){ return c!==cls; }).map(function(c){ return '<option value="'+c+'">'+c+'</option>'; }).join('')+
+            '<option value="__graduate__">🎓 পাস (বের করুন)</option>'+
+          '</select>'+
+          '<button class="btn btn-primary btn-sm" onclick="promoteClass(this.dataset.cls)" data-cls="'+cls+'">উন্নীত করুন</button>'+
+        '</div>'+
+      '</div>'+
+      '<div style="margin-top:8px;font-size:12px;color:var(--text-muted);">'+
+        students.slice(0,5).map(function(s){ return s.name; }).join(', ')+(students.length>5?' ...':'')+'</div>'+
+    '</div>';
+  }).join('');
+  document.getElementById('promoteClassList').innerHTML = html||'<p style="color:var(--text-muted);">কোনো শ্রেণি নেই। সেটিংস থেকে শ্রেণি যোগ করুন।</p>';
+  // Session fields
+  document.getElementById('promoteFromSession').value = data.settings.session||'';
+}
+function promoteClass(cls) {
+  var key = cls.replace(/\s/g,'_');
+  var newCls = document.getElementById('promTo-'+key).value;
+  if(!newCls) { toast('নতুন শ্রেণি নির্বাচন করুন!','error'); return; }
+  var students = data.students.filter(function(s){ return s.cls===cls; });
+  if(students.length===0) { toast('এই শ্রেণিতে কোনো শিক্ষার্থী নেই।','error'); return; }
+  if(!confirm(cls+' এর '+students.length+' জন শিক্ষার্থীকে '+(newCls==='__graduate__'?'পাস করিয়ে বের করবেন':newCls+' এ উন্নীত করবেন')+'?')) return;
+  if(newCls==='__graduate__') {
+    // Graduate — আলাদা collection এ নিয়ে যাই
+    students.forEach(function(s){ s.graduated=true; s.graduatedFrom=cls; s.graduatedDate=new Date().toISOString().split('T')[0]; });
+    data.students = data.students.filter(function(s){ return s.cls!==cls || !students.find(function(x){ return x.id===s.id; }); });
+  } else {
+    students.forEach(function(s){ s.cls=newCls; });
+  }
+  save('students');
+  renderPromotePage();
+  toast(students.length+' জন শিক্ষার্থী সফলভাবে উন্নীত হয়েছে ✅');
+}
+function promoteAll() {
+  var classes = data.settings.classes||[];
+  var pendingList = [];
+  classes.forEach(function(cls){
+    var key = cls.replace(/\s/g,'_');
+    var el = document.getElementById('promTo-'+key);
+    if(el && el.value) pendingList.push({from:cls, to:el.value});
+  });
+  if(pendingList.length===0) { toast('প্রতিটি শ্রেণির জন্য নতুন শ্রেণি নির্বাচন করুন!','error'); return; }
+  if(!confirm(pendingList.length+' টি শ্রেণির শিক্ষার্থীদের একসাথে উন্নীত করবেন?')) return;
+  pendingList.forEach(function(p){ 
+    data.students.filter(function(s){ return s.cls===p.from; }).forEach(function(s){ 
+      if(p.to==='__graduate__') { s.graduated=true; s.graduatedFrom=p.from; } 
+      else s.cls=p.to; 
+    }); 
+  });
+  if(pendingList.some(function(p){ return p.to==='__graduate__'; })) {
+    data.students = data.students.filter(function(s){ return !s.graduated||s.cls; });
+  }
+  save('students');
+  renderPromotePage();
+  toast('সব শ্রেণি উন্নীত করা হয়েছে ✅');
+}
+function updateSession() {
+  var from = document.getElementById('promoteFromSession').value.trim();
+  var to = document.getElementById('promoteToSession').value.trim();
+  if(!to) { toast('নতুন শিক্ষাবর্ষ লিখুন!','error'); return; }
+  data.settings.session = to;
+  save('settings');
+  document.getElementById('setSession').value = to;
+  toast('শিক্ষাবর্ষ '+to+' এ আপডেট হয়েছে ✅');
+}
+
+// ===================== WHATSAPP TEMPLATES =====================
+function renderWAPage() {
+  var selFee = document.getElementById('waStudentSelect');
+  var selAbs = document.getElementById('waAbsentSelect');
+  if(selFee) {
+    selFee.innerHTML = '<option value="">-- শিক্ষার্থী বেছে নিন --</option>'+
+      data.students.map(function(s){ return '<option value="'+s.id+'">'+s.name+' ('+s.cls+')</option>'; }).join('');
+  }
+  if(selAbs) {
+    selAbs.innerHTML = '<option value="">-- শিক্ষার্থী বেছে নিন --</option>'+
+      data.students.map(function(s){ return '<option value="'+s.id+'">'+s.name+' ('+s.cls+')</option>'; }).join('');
+  }
+  // All numbers
+  var nums = document.getElementById('waAllNumbers');
+  if(nums) {
+    nums.textContent = data.students.map(function(s){
+      var m = getContactMobile(s); return m ? s.name+': '+m : '';
+    }).filter(Boolean).join('\n');
+  }
+}
+function generateWAFee() {
+  var sid = document.getElementById('waStudentSelect').value;
+  if(!sid) return;
+  var s = data.students.find(function(x){ return x.id===sid; });
+  if(!s) return;
+  var due = calcStudentDue(sid);
+  var inst = data.settings.name||'প্রতিষ্ঠান';
+  var msg = 'আস-সালামু আলাইকুম।\n\n'+
+    '🏫 '+inst+'\n'+
+    'শিক্ষার্থী: '+s.name+'\n'+
+    'শ্রেণি: '+s.cls+', রোল: '+s.roll+'\n\n'+
+    '💰 বকেয়া ফি: ৳ '+due.toLocaleString()+'\n\n'+
+    'অনুগ্রহ করে যত শীঘ্র সম্ভব ফি পরিশোধ করুন।\n'+
+    (data.settings.bkashNumber ? '📱 bKash: '+data.settings.bkashNumber+'\n' : '')+
+    (data.settings.nagadNumber ? '📱 নগদ: '+data.settings.nagadNumber+'\n' : '')+
+    '\nধন্যবাদ।';
+  document.getElementById('waFeeMsg').value = msg;
+}
+function generateWAAbsent() {
+  var sid = document.getElementById('waAbsentSelect').value;
+  if(!sid) return;
+  var s = data.students.find(function(x){ return x.id===sid; });
+  if(!s) return;
+  var inst = data.settings.name||'প্রতিষ্ঠান';
+  var today = new Date().toLocaleDateString('bn-BD',{day:'numeric',month:'long',year:'numeric'});
+  var msg = 'আস-সালামু আলাইকুম।\n\n'+
+    '🏫 '+inst+'\n'+
+    'শিক্ষার্থী: '+s.name+'\n'+
+    'শ্রেণি: '+s.cls+', রোল: '+s.roll+'\n\n'+
+    '❌ আজ ('+today+') আপনার সন্তান মাদ্রাসায় অনুপস্থিত।\n\n'+
+    'অনুপস্থিতির কারণ জানালে উপকৃত হব।\n'+
+    '📞 যোগাযোগ: '+(data.settings.phone||'')+'\n\nধন্যবাদ।';
+  document.getElementById('waAbsentMsg').value = msg;
+}
+function generateWACustom() {
+  var msg = document.getElementById('waCustomMsg').value;
+  var inst = data.settings.name||'প্রতিষ্ঠান';
+  var final = '🏫 '+inst+'\n\n'+msg+'\n\nধন্যবাদ।';
+  document.getElementById('waCustomFinal').value = final;
+}
+function copyWAMsg(id) {
+  var el = document.getElementById(id);
+  if(!el||!el.value) { toast('প্রথমে মেসেজ তৈরি করুন!','error'); return; }
+  navigator.clipboard.writeText(el.value).then(function(){ toast('মেসেজ কপি হয়েছে ✅'); }).catch(function(){ el.select(); document.execCommand('copy'); toast('কপি হয়েছে!'); });
+}
+function sendWAMsg(msgId, selectId) {
+  var msg = document.getElementById(msgId).value;
+  var sid = document.getElementById(selectId).value;
+  if(!msg) { toast('প্রথমে মেসেজ তৈরি করুন!','error'); return; }
+  var phone = '';
+  if(sid) { var s = data.students.find(function(x){ return x.id===sid; }); if(s) phone = getContactMobile(s).replace(/[^0-9]/g,''); }
+  var url = 'https://wa.me/88'+phone+'?text='+encodeURIComponent(msg);
+  window.open(url, '_blank');
+}
+function copyAllNumbers() {
+  var el = document.getElementById('waAllNumbers');
+  if(el) { navigator.clipboard.writeText(el.textContent).then(function(){ toast('সব নম্বর কপি হয়েছে ✅'); }); }
+}
+
+// ===================== HOSTEL =====================
+function renderHostelPage() {
+  var rooms = data.hostelRooms||[];
+  var assignments = data.hostelAssignments||[];
+  // Room list
+  var roomHtml = rooms.length===0 ? '<p style="color:var(--text-muted);">কোনো রুম নেই। নতুন রুম যোগ করুন।</p>' :
+    '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:13px;">'+
+    '<thead><tr><th style="background:var(--primary);color:#fff;padding:8px;">রুম নং</th><th style="background:var(--primary);color:#fff;padding:8px;">ধরন</th><th style="background:var(--primary);color:#fff;padding:8px;">ধারণক্ষমতা</th><th style="background:var(--primary);color:#fff;padding:8px;">বর্তমান</th><th style="background:var(--primary);color:#fff;padding:8px;">অ্যাকশন</th></tr></thead><tbody>'+
+    rooms.map(function(r){
+      var occupied = assignments.filter(function(a){ return a.roomId===r.id&&a.active; }).length;
+      return '<tr><td style="padding:7px;text-align:center;font-weight:700;">'+r.number+'</td>'+
+        '<td style="padding:7px;text-align:center;">'+r.type+'</td>'+
+        '<td style="padding:7px;text-align:center;">'+r.capacity+'</td>'+
+        '<td style="padding:7px;text-align:center;">'+
+          '<span class="badge '+( occupied>=r.capacity?'badge-red':'badge-green')+'">'+occupied+'/'+r.capacity+'</span></td>'+
+        '<td style="padding:7px;text-align:center;">'+
+        '<button class="btn btn-danger btn-sm" onclick="deleteHostelRoom(\''+r.id+'\')">✕</button></td></tr>';
+    }).join('')+
+    '</tbody></table></div>';
+  document.getElementById('hostelRoomList').innerHTML = roomHtml;
+  // Assignment list
+  var assignHtml = assignments.filter(function(a){ return a.active; }).length===0 ? '<p style="color:var(--text-muted);">কোনো বরাদ্দ নেই।</p>' :
+    '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:13px;">'+
+    '<thead><tr><th style="background:var(--primary);color:#fff;padding:8px;">শিক্ষার্থী</th><th style="background:var(--primary);color:#fff;padding:8px;">শ্রেণি</th><th style="background:var(--primary);color:#fff;padding:8px;">রুম</th><th style="background:var(--primary);color:#fff;padding:8px;">তারিখ</th><th style="background:var(--primary);color:#fff;padding:8px;">অ্যাকশন</th></tr></thead><tbody>'+
+    assignments.filter(function(a){ return a.active; }).map(function(a){
+      var s = data.students.find(function(x){ return x.id===a.studentId; });
+      var r = rooms.find(function(x){ return x.id===a.roomId; });
+      return '<tr><td style="padding:7px;">'+( s?s.name:'অজানা')+'</td>'+
+        '<td style="padding:7px;text-align:center;">'+( s?s.cls:'' )+'</td>'+
+        '<td style="padding:7px;text-align:center;">'+( r?r.number:'অজানা')+'</td>'+
+        '<td style="padding:7px;text-align:center;">'+a.date+'</td>'+
+        '<td style="padding:7px;text-align:center;"><button class="btn btn-danger btn-sm" onclick="removeHostelAssignment(\''+a.id+'\')">✕ সরান</button></td></tr>';
+    }).join('')+'</tbody></table></div>';
+  document.getElementById('hostelAssignList').innerHTML = assignHtml;
+  // Summary
+  var totalCap = rooms.reduce(function(a,r){ return a+Number(r.capacity||0); },0);
+  var totalOcc = assignments.filter(function(a){ return a.active; }).length;
+  document.getElementById('hostelSummary').innerHTML =
+    '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;">'+
+    '<div style="text-align:center;padding:16px;background:var(--primary-ultra-light);border-radius:8px;"><div style="font-size:22px;font-weight:700;color:var(--primary);">'+rooms.length+'</div><div style="font-size:12px;color:var(--text-muted);">মোট রুম</div></div>'+
+    '<div style="text-align:center;padding:16px;background:#e8f5e9;border-radius:8px;"><div style="font-size:22px;font-weight:700;color:#2e7d32;">'+totalOcc+'</div><div style="font-size:12px;color:var(--text-muted);">বর্তমান আবাসিক</div></div>'+
+    '<div style="text-align:center;padding:16px;background:#fff3e0;border-radius:8px;"><div style="font-size:22px;font-weight:700;color:#e65100;">'+Math.max(0,totalCap-totalOcc)+'</div><div style="font-size:12px;color:var(--text-muted);">খালি আসন</div></div>'+
+    '</div>';
+}
+function openHostelRoomModal() {
+  var num = prompt('রুম নম্বর:');
+  if(!num) return;
+  var type = prompt('রুমের ধরন (যেমন: সাধারণ, VIP):','সাধারণ')||'সাধারণ';
+  var cap = parseInt(prompt('ধারণক্ষমতা (কতজন):','4'))||4;
+  if(!data.hostelRooms) data.hostelRooms = [];
+  data.hostelRooms.push({id:'room_'+Date.now(), number:num, type:type, capacity:cap});
+  save('hostelRooms');
+  renderHostelPage();
+  toast('রুম '+num+' যোগ হয়েছে ✅');
+}
+function deleteHostelRoom(id) {
+  if(!confirm('এই রুম মুছে ফেলবেন?')) return;
+  data.hostelRooms = (data.hostelRooms||[]).filter(function(r){ return r.id!==id; });
+  save('hostelRooms');
+  renderHostelPage();
+}
+function openAssignRoomModal() {
+  var rooms = (data.hostelRooms||[]);
+  if(rooms.length===0) { toast('প্রথমে রুম যোগ করুন!','error'); return; }
+  var sOpts = data.students.map(function(s){ return s.id+'|'+s.name+' ('+s.cls+')'; }).join('\n');
+  var sid = prompt('শিক্ষার্থীর নাম বা ID:\n'+data.students.slice(0,10).map(function(s){ return s.name; }).join(', ')+'...');
+  var student = data.students.find(function(s){ return s.name===sid||s.id===sid; });
+  if(!student) { toast('শিক্ষার্থী পাওয়া যায়নি!','error'); return; }
+  var roomOpts = rooms.map(function(r){ return r.number+' ('+r.type+')'; }).join(', ');
+  var roomNum = prompt('রুম নম্বর:\n'+roomOpts);
+  var room = rooms.find(function(r){ return r.number===roomNum; });
+  if(!room) { toast('রুম পাওয়া যায়নি!','error'); return; }
+  if(!data.hostelAssignments) data.hostelAssignments = [];
+  // existing assignment check
+  var existing = data.hostelAssignments.find(function(a){ return a.studentId===student.id&&a.active; });
+  if(existing) { toast(student.name+' আগে থেকেই একটি রুমে আছে!','error'); return; }
+  data.hostelAssignments.push({id:'ha_'+Date.now(), studentId:student.id, roomId:room.id, date:new Date().toISOString().split('T')[0], active:true});
+  save('hostelAssignments');
+  renderHostelPage();
+  toast(student.name+' → রুম '+room.number+' বরাদ্দ হয়েছে ✅');
+}
+function removeHostelAssignment(id) {
+  var a = (data.hostelAssignments||[]).find(function(x){ return x.id===id; });
+  if(!a) return;
+  if(!confirm('এই বরাদ্দ সরিয়ে দেবেন?')) return;
+  a.active = false;
+  save('hostelAssignments');
+  renderHostelPage();
+  toast('বরাদ্দ সরানো হয়েছে।');
 }
 
 function quickEditStudent(id) { editStudent(id); } // fallback
@@ -3356,6 +3900,17 @@ function renderIDCard() {
 // ===================== SETTINGS =====================
 function loadSettings() {
   const s = data.settings;
+  // Logo
+  if(s.logo) { applyLogoToUI(s.logo); document.getElementById('logoPreview').innerHTML='<img src="'+s.logo+'" style="width:100%;height:100%;object-fit:cover;">'; }
+  // Theme
+  if(s.themeColor) applyThemeColor(s.themeColor, s.themeLight||'', s.themeUlight||'');
+  // Mode
+  var mode = s.instMode||'madrasa';
+  var modeEl = document.getElementById('modeRadio-'+mode);
+  if(modeEl) modeEl.checked = true;
+  applyInstModeUI(mode);
+  // Session
+  document.getElementById('setSession').value=s.session||'';
   document.getElementById('setInstName').value=s.name||'';
   document.getElementById('setInstAbbr').value=s.abbr||'AN';
   document.getElementById('setInstSub').value=s.sub||'';
@@ -3398,10 +3953,13 @@ function saveSettings() {
   data.settings.bkashNumber = document.getElementById('setBkash').value.trim();
   data.settings.nagadNumber = document.getElementById('setNagad').value.trim();
   data.settings.bankAccount = document.getElementById('setBankAccount').value.trim();
+  data.settings.instMode = (document.querySelector('input[name="instMode"]:checked')||{value:'madrasa'}).value;
+  data.settings.session = document.getElementById('setSession').value.trim();
   save('settings');
   document.getElementById('instName').textContent=data.settings.name||'মাদ্রাসা ম্যানেজমেন্ট';
   document.getElementById('instSub').textContent=data.settings.sub||'ব্যবস্থাপনা সিস্টেম';
   document.getElementById('loginInstName').textContent=data.settings.name||'মাদ্রাসা ম্যানেজমেন্ট';
+  applyInstModeUI(data.settings.instMode);
   populateClassDropdowns();
   renderClassList();
   toast('সেটিংস সংরক্ষিত হয়েছে ✅');
