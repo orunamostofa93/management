@@ -582,6 +582,11 @@
             <select id="studentClassFilter" onchange="renderStudents()" style="padding:8px 12px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-family:inherit;font-size:13px;">
               <option value="">সব শ্রেণি</option>
             </select>
+            <select id="studentArchivedFilter" onchange="renderStudents()" style="padding:8px 12px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-family:inherit;font-size:13px;">
+              <option value="active">সক্রিয় শিক্ষার্থী</option>
+              <option value="archived">📦 আর্কাইভ করা</option>
+              <option value="all">সব (সক্রিয় + আর্কাইভ)</option>
+            </select>
             <button class="btn btn-outline btn-sm" onclick="printStudentList()">🖨️ তালিকা প্রিন্ট</button>
           </div>
           <div class="table-wrap"><table id="studentsTable">
@@ -1249,6 +1254,23 @@
       </div>
     </div>
 
+    <!-- ===== Delete Confirm Modal ===== -->
+    <div id="deleteConfirmModal" class="modal-overlay">
+      <div class="modal">
+        <div class="modal-header" style="background:var(--danger);">
+          <span class="modal-title" style="color:#fff;" id="delModalTitle">⚠️ মুছে ফেলার নিশ্চয়তা</span>
+          <button class="modal-close" style="color:#fff;" onclick="closeModal('deleteConfirmModal')">✕</button>
+        </div>
+        <div class="modal-body" id="delModalBody">
+          <!-- Dynamic content -->
+        </div>
+        <div class="modal-footer" id="delModalFooter">
+          <button class="btn btn-outline" onclick="closeModal('deleteConfirmModal')">বাতিল</button>
+          <button class="btn btn-danger" id="delConfirmBtn" onclick="executePendingDelete()" style="display:none;">🗑️ হ্যাঁ, মুছে ফেলুন</button>
+        </div>
+      </div>
+    </div>
+
     <!-- SETTINGS -->
     <div id="page-settings" class="page">
       <div class="card">
@@ -1391,6 +1413,51 @@
           </div>
         </div>
       </div>
+
+      <!-- ======================== ACCESS CONTROL ======================== -->
+      <div class="card" style="margin-top:16px;">
+        <div class="card-header">
+          <span class="card-title">🔐 একসেস ও পার্মিশন ব্যবস্থাপনা</span>
+          <span style="font-size:11px;color:var(--text-muted);">শুধু প্রধান অ্যাডমিন দেখতে পাবেন</span>
+        </div>
+        <div class="card-body">
+          <div style="display:flex;gap:6px;margin-bottom:16px;border-bottom:2px solid var(--border);padding-bottom:10px;flex-wrap:wrap;">
+            <button class="btn btn-primary btn-sm" id="permTab-users" onclick="switchPermTab('users')">👥 ব্যবহারকারী তালিকা</button>
+            <button class="btn btn-outline btn-sm" id="permTab-edit" onclick="switchPermTab('edit')">✏️ পার্মিশন সম্পাদনা</button>
+            <button class="btn btn-outline btn-sm" id="permTab-log" onclick="switchPermTab('log')">📋 লগিন লগ</button>
+          </div>
+          <!-- Users List -->
+          <div id="permSection-users">
+            <div style="margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+              <div style="font-size:13px;font-weight:600;color:var(--primary);">🔑 সকল ব্যবহারকারী ও তাদের অ্যাক্সেস</div>
+            </div>
+            <div class="user-card" style="border-color:var(--primary);background:var(--primary-ultra-light);margin-bottom:10px;">
+              <div class="user-card-header">
+                <div class="user-card-avatar" style="background:linear-gradient(135deg,#c9a227,#e8b84b);">👑</div>
+                <div style="flex:1;">
+                  <div class="user-card-name">প্রধান অ্যাডমিন (Super Admin)</div>
+                  <div class="user-card-role">সম্পূর্ণ সিস্টেম নিয়ন্ত্রণ — সব অ্যাক্সেস</div>
+                </div>
+                <span style="background:var(--primary);color:#fff;border-radius:20px;padding:4px 14px;font-size:11px;font-weight:700;white-space:nowrap;">🔓 সকল পার্মিশন</span>
+              </div>
+              <div style="font-size:11px;color:var(--text-muted);">PIN পরিবর্তন: উপরে "সাধারণ তথ্য" → Admin PIN</div>
+            </div>
+            <div id="permUserList">লোড হচ্ছে...</div>
+          </div>
+          <!-- Permission Edit -->
+          <div id="permSection-edit" style="display:none;">
+            <div id="permEditContent">
+              <p style="color:var(--text-muted);text-align:center;padding:20px;">বাম থেকে একজন ব্যবহারকারী নির্বাচন করুন।</p>
+            </div>
+          </div>
+          <!-- Access Log -->
+          <div id="permSection-log" style="display:none;">
+            <div style="font-size:13px;font-weight:600;color:var(--primary);margin-bottom:10px;">📋 সাম্প্রতিক লগিন ইতিহাস</div>
+            <div id="accessLogList" style="font-size:12px;max-height:300px;overflow-y:auto;"></div>
+          </div>
+        </div>
+      </div>
+
     </div>
 
   </div><!-- /content -->
@@ -2414,7 +2481,7 @@ function showPage(id) {
   if(id==='letters') renderLetters();
   if(id==='fee') { populateFeeClassFilter(); renderFeePage(); }
   if(id==='idcard') populateIDDropdown();
-  if(id==='settings') loadSettings();
+  if(id==='settings') { loadSettings(); setTimeout(function(){ switchPermTab('users'); }, 100); }
   if(id==='remarks') renderRemarksApproval();
   // Close sidebar on mobile
   document.getElementById('sidebar').classList.remove('open');
@@ -2928,6 +2995,91 @@ function calcTeacherDue(tid) {
   const totalDue = months * Number(t.salary||0);
   return Math.max(0, totalDue - paid);
 }
+
+// ===================== SAFE DELETE SYSTEM =====================
+var _pendingDeleteFn = null;
+var _pendingConfirmWord = null;
+
+function safeDelete(opts) {
+  /*
+    opts: {
+      title: string,
+      name: string,          — কী মুছছেন
+      type: string,          — 'student' | 'teacher' | 'class' | etc.
+      blocked: [{r, d}],     — কারণগুলো (r=badge label, d=detail)
+      confirmWord: string|null,  — null = simple confirm, string = type to confirm
+      warning: string,
+      onConfirm: function
+    }
+  */
+  _pendingDeleteFn = null;
+  _pendingConfirmWord = null;
+
+  var titleEl = document.getElementById('delModalTitle');
+  var bodyEl = document.getElementById('delModalBody');
+  var confirmBtn = document.getElementById('delConfirmBtn');
+  var footerEl = document.getElementById('delModalFooter');
+
+  titleEl.textContent = opts.title || '⚠️ মুছে ফেলার নিশ্চয়তা';
+
+  var bodyHtml = '';
+
+  if(opts.blocked && opts.blocked.length > 0) {
+    // Blocked — show reasons, no confirm button
+    bodyHtml += '<div class="del-blocked">';
+    bodyHtml += '<div style="font-weight:700;color:#856404;margin-bottom:8px;">🚫 মুছে ফেলা যাবে না</div>';
+    bodyHtml += '<div style="font-weight:600;font-size:13px;margin-bottom:8px;color:#333;">'+opts.name+'</div>';
+    opts.blocked.forEach(function(b){
+      bodyHtml += '<div class="del-blocked-item"><span class="del-reason-badge">'+b.r+'</span><span>'+b.d+'</span></div>';
+    });
+    bodyHtml += '</div>';
+    bodyHtml += '<p style="font-size:12px;color:var(--text-muted);margin-top:4px;">উপরের সমস্যাগুলো সমাধান করুন, তারপর মুছতে পারবেন।</p>';
+    confirmBtn.style.display = 'none';
+  } else {
+    // Allowed — show warning + confirm
+    bodyHtml += '<div class="del-allowed-msg">';
+    bodyHtml += '<div style="font-weight:700;margin-bottom:4px;">মুছবেন: <span style="color:var(--danger);">'+opts.name+'</span></div>';
+    if(opts.warning) bodyHtml += '<div style="margin-top:6px;font-size:12px;">'+opts.warning+'</div>';
+    bodyHtml += '</div>';
+
+    if(opts.confirmWord) {
+      _pendingConfirmWord = opts.confirmWord;
+      bodyHtml += '<label class="del-type-label">নিশ্চিত করতে <strong>"'+opts.confirmWord+'"</strong> টাইপ করুন:</label>';
+      bodyHtml += '<input type="text" id="delConfirmInput" class="del-type-input" placeholder="'+opts.confirmWord+'" oninput="checkDelWord(this.value)">';
+      confirmBtn.style.display = 'none'; // initially hidden
+    } else {
+      _pendingConfirmWord = null;
+      confirmBtn.style.display = '';
+    }
+    _pendingDeleteFn = opts.onConfirm;
+  }
+
+  bodyEl.innerHTML = bodyHtml;
+  openModal('deleteConfirmModal');
+}
+
+function checkDelWord(val) {
+  var btn = document.getElementById('delConfirmBtn');
+  if(!btn) return;
+  if(_pendingConfirmWord && val.trim() === _pendingConfirmWord.trim()) {
+    btn.style.display = '';
+    btn.style.animation = 'none';
+  } else {
+    btn.style.display = 'none';
+  }
+}
+
+function executePendingDelete() {
+  if(typeof _pendingDeleteFn === 'function') {
+    closeModal('deleteConfirmModal');
+    _pendingDeleteFn();
+    _pendingDeleteFn = null;
+    _pendingConfirmWord = null;
+  }
+}
+// ===================== END SAFE DELETE =====================
+
+
 function getContactMobile(s) {
   // priority: বাবার মোবাইল → মায়ের মোবাইল → student মোবাইল
   return s.fatherMobile||s.motherMobile||s.mobile||'';
@@ -2945,19 +3097,21 @@ function getContactMobiles(s) {
 function renderStudents() {
   const search = document.getElementById('studentSearch')?.value?.toLowerCase()||'';
   const cls = document.getElementById('studentClassFilter')?.value||'';
+  const archivedFilter = document.getElementById('studentArchivedFilter')?.value||'active';
   populateClassDropdowns();
   let list = data.students.filter(s=>{
     const matchSearch = s.name?.toLowerCase().includes(search)||String(s.roll).includes(search)||(s.code||'').toLowerCase().includes(search);
-    const matchCls = !cls||s.cls===cls;
-    return matchSearch&&matchCls;
+    const matchCls = !cls||(s.cls||'').trim()===cls.trim();
+    const isArchived = !!s.archived;
+    const matchArchived = archivedFilter==='all' || (archivedFilter==='archived' ? isArchived : !isArchived);
+    return matchSearch&&matchCls&&matchArchived;
   });
   document.getElementById('studentsBody').innerHTML = list.map(s=>{
     const due = calcStudentDue(s.id);
     const mobile = getContactMobile(s);
-    return `<tr id="strow-${s.id}">
-      <td>${renderEditCell(s.id,'roll',s.roll,'number')}</td>
+    return `<tr id="strow-${s.id}" style="${s.archived ? 'opacity:0.55;background:#f8f9fa;' : ''}">      <td>${renderEditCell(s.id,'roll',s.roll,'number')}</td>
       <td><span style="font-family:monospace;font-size:11px;background:#e8f5e9;color:var(--primary);padding:2px 6px;border-radius:4px;font-weight:700;">${s.code||'-'}</span></td>
-      <td>${renderEditCell(s.id,'name',s.name,'text')}</td>
+      <td>${renderEditCell(s.id,'name',s.name,'text')}${s.archived ? ' <span style="background:#6c757d;color:#fff;font-size:10px;padding:1px 6px;border-radius:8px;font-weight:700;" title="'+s.archiveReason+'">📦 আর্কাইভ</span>' : ''}</td>
       <td>${s.father||'-'}</td>
       <td>${renderEditCellSelect(s.id,'cls',s.cls)}</td>
       <td style="font-family:monospace;font-size:12px;">${mobile ? mobile+'&nbsp;<a href="tel:'+mobile+'" style="text-decoration:none;font-size:14px;" title="কল করুন">📞</a>' : '-'}</td>
@@ -2967,7 +3121,8 @@ function renderStudents() {
         <button class="btn btn-primary btn-sm" onclick="openStudentProfile('${s.id}')">👁 প্রোফাইল</button>
         <button class="btn btn-accent btn-sm" onclick="editStudent('${s.id}')">🔧 পূর্ণ এডিট</button>
         <button class="btn btn-accent btn-sm" onclick="openFeeModal('${s.id}','student')">💰 ফি</button>
-        <button class="btn btn-danger btn-sm" onclick="deleteStudent('${s.id}')">✕</button>
+        ${s.archived ? '<button class="btn btn-sm" style="background:#6c757d;color:#fff;" onclick="restoreStudent(\''+s.id+'\')">♻️ পুনরুদ্ধার</button>' : '<button class="btn btn-sm" style="background:#fd7e14;color:#fff;" onclick="archiveStudent(\''+s.id+'\')" title="চলে গেছেন — Archive করুন">📦 আর্কাইভ</button>'}
+        <button class="btn btn-danger btn-sm" onclick="deleteStudent('${s.id}')" title="স্থায়ীভাবে মুছুন">🗑️</button>
       </td>
     </tr>`;
   }).join('')||'<tr><td colspan="9" style="text-align:center;color:var(--text-muted);padding:20px;">কোনো শিক্ষার্থী পাওয়া যায়নি।</td></tr>';
@@ -3413,10 +3568,21 @@ function openHostelRoomModal() {
   toast('রুম '+num+' যোগ হয়েছে ✅');
 }
 function deleteHostelRoom(id) {
-  if(!confirm('এই রুম মুছে ফেলবেন?')) return;
-  data.hostelRooms = (data.hostelRooms||[]).filter(function(r){ return r.id!==id; });
-  save('hostelRooms');
-  renderHostelRooms();
+  var r = (data.hostelRooms||[]).find(function(x){ return x.id===id; });
+  if(!r) return;
+  var blocked = [];
+  var occupied = (data.hostelAssignments||[]).filter(function(a){ return a.roomId===id&&a.active; }).length;
+  if(occupied>0) blocked.push({r:'আবাসিক আছে', d:'এই রুমে '+occupied+' জন শিক্ষার্থী আছে। আগে তাদের অন্য রুমে সরান।'});
+  safeDelete({
+    title:'🗑️ রুম মুছুন: '+r.number,
+    name:'রুম '+r.number, type:'room',
+    blocked:blocked,
+    confirmWord:r.number,
+    onConfirm:function(){
+      data.hostelRooms=(data.hostelRooms||[]).filter(function(x){ return x.id!==id; });
+      save('hostelRooms'); renderHostelRooms(); toast('রুম মুছে ফেলা হয়েছে।','error');
+    }
+  });
 }
 
 // --- RESIDENTS ---
@@ -3873,8 +4039,45 @@ var _origRenderMeal = window.renderMealRoutine;
 
 function quickEditStudent(id) { editStudent(id); } // fallback
 function deleteStudent(id) {
-  if(!confirm('শিক্ষার্থীর তথ্য মুছে ফেলবেন?')) return;
-  data.students = data.students.filter(s=>s.id!==id); save('students'); renderStudents(); toast('শিক্ষার্থী মুছে ফেলা হয়েছে।','error');
+  var s = data.students.find(function(x){ return x.id===id; });
+  if(!s) return;
+  var blocked = [];
+  // বেতন বকেয়া check
+  var due = calcStudentDue(id);
+  if(due>0) blocked.push({r:'বকেয়া আছে', d:'৳'+due.toLocaleString()+' ফি বকেয়া আছে। আগে পরিশোধ করুন।'});
+  // হাজিরার রেকর্ড আছে কিনা
+  var hasAtt = Object.keys(data.attendance||{}).some(function(k){ return data.attendance[k]&&data.attendance[k][id]; });
+  if(hasAtt) blocked.push({r:'হাজিরার রেকর্ড', d:'এই শিক্ষার্থীর উপস্থিতির রেকর্ড আছে। মুছলে তথ্য হারিয়ে যাবে।'});
+  // ফলাফল আছে কিনা
+  var hasResult = (data.results||[]).some(function(r){ return r.studentId===id; });
+  if(hasResult) blocked.push({r:'পরীক্ষার ফলাফল', d:'এই শিক্ষার্থীর পরীক্ষার ফলাফল সেভ আছে।'});
+  // হোস্টেলে আছে কিনা
+  var isResident = (data.hostelAssignments||[]).some(function(a){ return a.studentId===id&&a.active; });
+  if(isResident) blocked.push({r:'হোস্টেলে আছে', d:'প্রথমে হোস্টেল থেকে বের করুন।'});
+  safeDelete({
+    title:'🗑️ শিক্ষার্থী মুছুন: '+s.name,
+    name:s.name, type:'student',
+    blocked:blocked,
+    confirmWord:'DELETE',
+    warning:'সতর্কতা: এই শিক্ষার্থীর সব তথ্য স্থায়ীভাবে মুছে যাবে।',
+    onConfirm:function(){
+      data.students=data.students.filter(function(x){ return x.id!==id; });
+      save('students'); renderStudents(); toast(s.name+' মুছে ফেলা হয়েছে।','error');
+    }
+  });
+}
+function archiveStudent(id) {
+  // চলে যাওয়া শিক্ষার্থী — delete না করে archive করো
+  var s = data.students.find(function(x){ return x.id===id; });
+  if(!s) return;
+  var reason = prompt('চলে যাওয়ার কারণ লিখুন:');
+  if(reason===null) return;
+  s.archived = true;
+  s.archiveDate = new Date().toISOString().split('T')[0];
+  s.archiveReason = reason||'স্থানান্তরিত';
+  save('students');
+  renderStudents();
+  toast(s.name+' কে আর্কাইভ করা হয়েছে। তথ্য সংরক্ষিত থাকবে।');
 }
 
 function editStudent(id) {
@@ -4026,14 +4229,70 @@ function renderTeachers() {
         <button class="btn btn-primary btn-sm" onclick="openTeacherProfile('${t.id}')">👁 প্রোফাইল</button>
         <button class="btn btn-accent btn-sm" onclick="editTeacher('${t.id}')">✏️ এডিট</button>
         <button class="btn btn-accent btn-sm" onclick="openFeeModal('${t.id}','teacher')">💰 বেতন</button>
-        <button class="btn btn-danger btn-sm" onclick="deleteTeacher('${t.id}')">✕</button>
+        ${t.archived ? '<button class="btn btn-sm" style="background:#6c757d;color:#fff;" onclick="restoreTeacher(\''+t.id+'\')">♻️ পুনরুদ্ধার</button>' : '<button class="btn btn-sm" style="background:#fd7e14;color:#fff;" onclick="archiveTeacher(\''+t.id+'\')" title="চাকরি ছেড়েছেন — Archive">📦 আর্কাইভ</button>'}
+        <button class="btn btn-danger btn-sm" onclick="deleteTeacher('${t.id}')" title="স্থায়ীভাবে মুছুন">🗑️</button>
       </td>
     </tr>`;
   }).join('')||'<tr><td colspan="9" style="text-align:center;color:var(--text-muted);padding:20px;">কোনো তথ্য নেই।</td></tr>';
 }
 function deleteTeacher(id) {
-  if(!confirm('তথ্য মুছে ফেলবেন?')) return;
-  data.teachers = data.teachers.filter(t=>t.id!==id); save('teachers'); renderTeachers(); toast('মুছে ফেলা হয়েছে।','error');
+  var t = data.teachers.find(function(x){ return x.id===id; });
+  if(!t) return;
+  var blocked = [];
+  // বেতন বকেয়া
+  var due = calcTeacherDue(id);
+  if(due>0) blocked.push({r:'বেতন বকেয়া', d:'৳'+due.toLocaleString()+' বেতন বাকি আছে।'});
+  // হাজিরার রেকর্ড (কে হাজিরা নিয়েছে)
+  var hasAtt = Object.keys(data.attendance||{}).some(function(k){ return data.attendance[k]&&data.attendance[k]._takenBy===id; });
+  if(hasAtt) blocked.push({r:'হাজিরার রেকর্ড', d:'এই শিক্ষক হাজিরা নিয়েছেন এমন রেকর্ড আছে।'});
+  // ক্লাস রুটিনে assigned আছে কিনা
+  var inRoutine = (data.routine||[]).some(function(r){ return r.teacherId===id; });
+  if(inRoutine) blocked.push({r:'রুটিনে আছেন', d:'শ্রেণি রুটিনে এই শিক্ষকের নাম আছে।'});
+  safeDelete({
+    title:'🗑️ '+(t.type||'শিক্ষক')+' মুছুন: '+t.name,
+    name:t.name, type:'teacher',
+    blocked:blocked,
+    confirmWord:'DELETE',
+    warning:'সতর্কতা: এই ব্যক্তির সব তথ্য স্থায়ীভাবে মুছে যাবে।',
+    onConfirm:function(){
+      data.teachers=data.teachers.filter(function(x){ return x.id!==id; });
+      save('teachers'); renderTeachers(); toast(t.name+' মুছে ফেলা হয়েছে।','error');
+    }
+  });
+}
+function archiveTeacher(id) {
+  var t = data.teachers.find(function(x){ return x.id===id; });
+  if(!t) return;
+  var reason = prompt('চলে যাওয়ার কারণ লিখুন (যেমন: পদত্যাগ, বরখাস্ত):');
+  if(reason===null) return;
+  t.archived = true;
+  t.archiveDate = new Date().toISOString().split('T')[0];
+  t.archiveReason = reason||'চাকরি ত্যাগ';
+  save('teachers');
+  renderTeachers();
+  toast(t.name+' কে আর্কাইভ করা হয়েছে।');
+}
+function restoreStudent(id) {
+  var s = data.students.find(function(x){ return x.id===id; });
+  if(!s) return;
+  if(!confirm(s.name+' কে পুনরায় সক্রিয় করবেন?')) return;
+  s.archived = false;
+  s.archiveDate = null;
+  s.archiveReason = null;
+  save('students');
+  renderStudents();
+  toast(s.name+' পুনরায় সক্রিয় করা হয়েছে। ✅');
+}
+function restoreTeacher(id) {
+  var t = data.teachers.find(function(x){ return x.id===id; });
+  if(!t) return;
+  if(!confirm(t.name+' কে পুনরায় সক্রিয় করবেন?')) return;
+  t.archived = false;
+  t.archiveDate = null;
+  t.archiveReason = null;
+  save('teachers');
+  renderTeachers();
+  toast(t.name+' পুনরায় সক্রিয় করা হয়েছে। ✅');
 }
 
 function editTeacher(id) {
@@ -4278,7 +4537,20 @@ function renderResults() {
   }).join('')||'<tr><td colspan="16" style="text-align:center;color:var(--text-muted);padding:20px;">কোনো ফলাফল নেই।</td></tr>';
 }
 function deleteResult(id) {
-  data.results=data.results.filter(r=>r.id!==id); save('results'); renderResults(); toast('মুছে ফেলা হয়েছে।','error');
+  var r = (data.results||[]).find(function(x){ return x.id===id; });
+  if(!r) return;
+  var s = data.students.find(function(x){ return x.id===r.studentId; });
+  safeDelete({
+    title:'🗑️ ফলাফল মুছুন',
+    name:(s?s.name:'শিক্ষার্থী')+' — '+r.exam,
+    type:'result', blocked:[],
+    confirmWord:'DELETE',
+    warning:'এই পরীক্ষার ফলাফল স্থায়ীভাবে মুছে যাবে।',
+    onConfirm:function(){
+      data.results=data.results.filter(function(x){ return x.id!==id; });
+      save('results'); renderResults(); toast('মুছে ফেলা হয়েছে।','error');
+    }
+  });
 }
 
 // ===================== FINANCE =====================
@@ -4310,7 +4582,20 @@ function renderFinance() {
     </tr>`).join('')||'<tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:20px;">কোনো লেনদেন নেই।</td></tr>';
 }
 function deleteFinance(id) {
-  data.finance=data.finance.filter(f=>f.id!==id); save('finance'); renderFinance(); toast('মুছে ফেলা হয়েছে।','error');
+  var f = data.finance.find(function(x){ return x.id===id; });
+  if(!f) return;
+  safeDelete({
+    title:'🗑️ আর্থিক লেনদেন মুছুন',
+    name:f.type+': ৳'+Number(f.amount).toLocaleString()+' — '+f.date,
+    type:'finance',
+    blocked:[],
+    confirmWord:'DELETE',
+    warning:'⚠️ এই লেনদেন মুছলে আর্থিক হিসাব পরিবর্তন হবে!',
+    onConfirm:function(){
+      data.finance=data.finance.filter(function(x){ return x.id!==id; });
+      save('finance'); renderFinance(); toast('মুছে ফেলা হয়েছে।','error');
+    }
+  });
 }
 
 // ===================== NOTICES =====================
@@ -4346,7 +4631,19 @@ function renderNotices() {
     </div>`).join('');
 }
 function deleteNotice(id) {
-  data.notices=data.notices.filter(n=>n.id!==id); save('notices'); renderNotices(); toast('মুছে ফেলা হয়েছে।','error');
+  var n = data.notices.find(function(x){ return x.id===id; });
+  if(!n) return;
+  safeDelete({
+    title:'🗑️ বিজ্ঞপ্তি মুছুন',
+    name:n.title,
+    type:'notice', blocked:[],
+    confirmWord:null,
+    warning:'এই বিজ্ঞপ্তি মুছে যাবে।',
+    onConfirm:function(){
+      data.notices=data.notices.filter(function(x){ return x.id!==id; });
+      save('notices'); renderNotices(); toast('মুছে ফেলা হয়েছে।','error');
+    }
+  });
 }
 
 // ===================== LEAVES =====================
@@ -4535,8 +4832,21 @@ function rejectLeave(id) {
 }
 
 function deleteLeave(id) {
-  if(!confirm('এই আবেদনটি মুছবেন?')) return;
-  data.leaves=data.leaves.filter(l=>l.id!==id); save('leaves'); renderLeaves(); toast('মুছে ফেলা হয়েছে।','error');
+  var l = data.leaves.find(function(x){ return x.id===id; });
+  if(!l) return;
+  var blocked = [];
+  if(l.status==='approved') blocked.push({r:'অনুমোদিত আবেদন', d:'এটি ইতিমধ্যে অনুমোদন হয়েছে। মুছলে রেকর্ড হারাবে।'});
+  safeDelete({
+    title:'🗑️ ছুটির আবেদন মুছুন',
+    name:(l.reason||'').slice(0,30),
+    type:'leave', blocked:blocked,
+    confirmWord:null,
+    warning:'এই ছুটির আবেদন মুছে যাবে।',
+    onConfirm:function(){
+      data.leaves=data.leaves.filter(function(x){ return x.id!==id; });
+      save('leaves'); renderLeaves(); toast('মুছে ফেলা হয়েছে।','error');
+    }
+  });
 }
 
 function printLeave() {
@@ -4603,7 +4913,19 @@ function renderSyllabus() {
     </div>`).join('');
 }
 function deleteSyllabus(id) {
-  data.syllabus=data.syllabus.filter(s=>s.id!==id); save('syllabus'); renderSyllabus(); toast('মুছে ফেলা হয়েছে।','error');
+  var sy = (data.syllabus||[]).find(function(x){ return x.id===id; });
+  if(!sy) return;
+  safeDelete({
+    title:'🗑️ সিলেবাস মুছুন',
+    name:(sy.subject||'')+' — '+(sy.cls||''),
+    type:'syllabus', blocked:[],
+    confirmWord:null,
+    warning:'এই সিলেবাস মুছে যাবে।',
+    onConfirm:function(){
+      data.syllabus=data.syllabus.filter(function(x){ return x.id!==id; });
+      save('syllabus'); renderSyllabus(); toast('মুছে ফেলা হয়েছে।','error');
+    }
+  });
 }
 
 // ===================== ID CARD =====================
@@ -4742,6 +5064,9 @@ function loadSettings() {
   document.getElementById('setBankAccount').value=s.bankAccount||'';
   renderClassList();
   renderHolidayList();
+  // Permission section — শুধু admin দেখবে
+  var permCard = document.querySelector('#page-settings .card:last-child');
+  if(permCard) permCard.style.display = (currentUser && currentUser.role==='admin') ? '' : 'none';
 }
 function saveSettings() {
   data.settings.name=document.getElementById('setInstName').value;
@@ -4788,10 +5113,28 @@ function addClass() {
   else toast('এই শ্রেণি আগে থেকেই আছে।','error');
 }
 function removeClass(cls) {
-  data.settings.classes=data.settings.classes.filter(c=>c!==cls); save('settings'); renderClassList(); toast(cls+' মুছে ফেলা হয়েছে।','error');
+  var blocked = [];
+  var stuCount = (data.students||[]).filter(function(s){ return (s.cls||'').trim()===cls.trim(); }).length;
+  if(stuCount>0) blocked.push({r:'ছাত্র আছে', d:'এই শ্রেণিতে '+stuCount+' জন শিক্ষার্থী আছে। আগে তাদের অন্য শ্রেণিতে নিন বা উন্নীত করুন।'});
+  safeDelete({
+    title:'🗑️ শ্রেণি মুছুন: '+cls,
+    name:cls, type:'class',
+    blocked:blocked,
+    confirmWord:cls,
+    onConfirm:function(){
+      data.settings.classes=data.settings.classes.filter(function(c){ return c!==cls; });
+      save('settings'); renderClassList(); toast(cls+' মুছে ফেলা হয়েছে।','error');
+    }
+  });
 }
 function clearAllData() {
-  if(!confirm('সমস্ত ডেটা মুছে ফেলবেন? এটি Firebase থেকেও মুছে যাবে এবং পুনরুদ্ধার করা যাবে না!')) return;
+  // Triple confirmation for nuclear option
+  var step1 = confirm('⚠️ সতর্কতা!\n\nসমস্ত ডেটা Firebase থেকেও মুছে যাবে — পুনরুদ্ধার করা যাবে না!\n\nমুছবেন?');
+  if(!step1) return;
+  var step2 = prompt('সম্পূর্ণ নিশ্চিত হতে নিচে লিখুন:\nSAB MUCHI DIY');
+  if(!step2 || step2.trim() !== 'SAB MUCHI DIY') { toast('সঠিক text লেখা হয়নি। বাতিল।'); return; }
+  var adminPin = prompt('চূড়ান্ত নিশ্চয়তার জন্য Admin PIN দিন:');
+  if(!adminPin || adminPin.trim() !== String(data.settings.adminPin||'1234')) { toast('ভুল PIN। বাতিল।','error'); return; }
   ['students','teachers','attendance','results','finance','notices','leaves','routine','syllabus'].forEach(k=>{ data[k]=Array.isArray(data[k])?[]:{} ; save(k); });
   toast('সব ডেটা মুছে ফেলা হয়েছে।','error');
 }
@@ -5690,13 +6033,25 @@ function openTeacherProfile(tid) {
 }
 
 function deleteFeePayment(fid, personType, personId) {
-  if(!confirm('এই পেমেন্ট মুছে ফেলবেন?')) return;
-  data.feePayments = data.feePayments.filter(f=>f.id!==fid);
-  data.finance = data.finance.filter(f=>f.id!==fid);
-  save('feePayments'); save('finance');
-  toast('পেমেন্ট মুছে ফেলা হয়েছে।','error');
-  if(personType==='student') { renderStudents(); openStudentProfile(personId); }
-  else { renderTeachers(); openTeacherProfile(personId); }
+  var p = (data.feePayments||[]).find(function(x){ return x.id===fid; });
+  if(!p) return;
+  var name = '';
+  if(personType==='student') { var s=data.students.find(function(x){ return x.id===personId; }); name=s?s.name:''; }
+  else { var t=data.teachers.find(function(x){ return x.id===personId; }); name=t?t.name:''; }
+  safeDelete({
+    title:'🗑️ পেমেন্ট রেকর্ড মুছুন',
+    name:'৳'+Number(p.amount).toLocaleString()+' ('+p.date+')',
+    type:'payment',
+    blocked:[],
+    confirmWord:'DELETE',
+    warning:'⚠️ '+name+' এর এই পেমেন্ট রেকর্ড মুছলে হিসাব পরিবর্তন হবে!',
+    onConfirm:function(){
+      data.feePayments=data.feePayments.filter(function(x){ return x.id!==fid; });
+      save('feePayments'); toast('পেমেন্ট রেকর্ড মুছে ফেলা হয়েছে।','error');
+      if(personType==='student') renderStudentProfile(personId);
+      else renderTeacherSalaryHistory(personId);
+    }
+  });
 }
 
 function printStudentProfile() {
@@ -7179,8 +7534,10 @@ function doLogin() {
   // Admin PIN check
   const adminPin = data.settings.adminPin || '1234';
   if(pin === adminPin) {
-    currentUser = { role:'admin', name:'প্রশাসক', pin };
+    currentUser = { role:'admin', name:'প্রধান অ্যাডমিন', pin };
     sessionStorage.setItem('mms_user', JSON.stringify(currentUser));
+    logAccess('admin', 'প্রধান অ্যাডমিন', 'লগিন করেছেন');
+    save('settings');
     hideLoginScreen(); applyAccess();
     return;
   }
@@ -7190,8 +7547,10 @@ function doLogin() {
     let role = 'teacher';
     if(teacher.type==='স্টাফ') role = 'staff';
     if(teacher.type==='পিয়ন') role = 'peon';
-    currentUser = { role, name:teacher.name, pin, id:teacher.id, cls:teacher.assignedClass||'' };
+    currentUser = { role, name:teacher.name, pin, id:teacher.id, cls:teacher.assignedClass||'', type:teacher.type||'' };
     sessionStorage.setItem('mms_user', JSON.stringify(currentUser));
+    logAccess(teacher.id, teacher.name, 'লগিন করেছেন');
+    save('settings');
     hideLoginScreen(); applyAccess();
     return;
   }
@@ -7214,21 +7573,33 @@ function applyAccess() {
     document.getElementById('sidebar').style.display = 'flex';
     document.getElementById('main').style.display = 'flex';
     init();
-  } else if(currentUser.role === 'teacher') {
-    hideLoginScreen();
-    document.getElementById('sidebar').style.display = 'none';
-    document.getElementById('main').style.display = 'flex';
-    showTeacherAttPage();
-  } else if(currentUser.role === 'staff') {
-    hideLoginScreen();
-    document.getElementById('sidebar').style.display = 'none';
-    document.getElementById('main').style.display = 'flex';
-    showStaffCheckinPage();
-  } else if(currentUser.role === 'peon') {
-    hideLoginScreen();
-    document.getElementById('sidebar').style.display = 'none';
-    document.getElementById('main').style.display = 'flex';
-    showPeonStockPage();
+  } else {
+    // teacher/staff — check if they have custom page perms
+    var perms = getTeacherPerms(currentUser.id);
+    var hasCustomPerms = perms && (perms.pages||[]).length > 0;
+    if(hasCustomPerms) {
+      showCustomUserDash();
+    } else if(currentUser.role === 'teacher') {
+      hideLoginScreen();
+      document.getElementById('sidebar').style.display = 'none';
+      document.getElementById('main').style.display = 'flex';
+      showTeacherAttPage();
+    } else if(currentUser.role === 'staff') {
+      hideLoginScreen();
+      document.getElementById('sidebar').style.display = 'none';
+      document.getElementById('main').style.display = 'flex';
+      showStaffCheckinPage();
+    } else if(currentUser.role === 'peon') {
+      hideLoginScreen();
+      document.getElementById('sidebar').style.display = 'none';
+      document.getElementById('main').style.display = 'flex';
+      showPeonStockPage();
+    } else {
+      hideLoginScreen();
+      document.getElementById('sidebar').style.display = 'none';
+      document.getElementById('main').style.display = 'flex';
+      showTeacherAttPage();
+    }
   }
 }
 
@@ -7644,6 +8015,370 @@ function doCheckin(type) {
   toast(msg, ts&&(ts.status==='late'||ts.status==='early_out')?'error':'success');
   renderCheckinForm(true,'✅ মাদ্রাসার নেটওয়ার্ক');
 }
+
+
+// ╔══════════════════════════════════════════════════════════════╗
+// ║           PERMISSION SYSTEM — সম্পূর্ণ নতুন                ║
+// ╚══════════════════════════════════════════════════════════════╝
+
+// ---- সব পেজের সংজ্ঞা ----
+const ALL_PAGES = [
+  { id:'dashboard',   label:'ড্যাশবোর্ড',           icon:'📊', group:'সাধারণ' },
+  { id:'students',    label:'শিক্ষার্থী তালিকা',     icon:'👨‍🎓', group:'শিক্ষার্থী' },
+  { id:'fee',         label:'ফি আদায়',               icon:'💳', group:'শিক্ষার্থী' },
+  { id:'results',     label:'পরীক্ষার ফলাফল',        icon:'📋', group:'শিক্ষার্থী' },
+  { id:'promote',     label:'শ্রেণি উন্নীত',          icon:'🎓', group:'শিক্ষার্থী' },
+  { id:'attendance',  label:'উপস্থিতি',               icon:'✅', group:'শিক্ষার্থী' },
+  { id:'teachers',    label:'শিক্ষক/স্টাফ',           icon:'👨‍🏫', group:'শিক্ষক' },
+  { id:'payroll',     label:'পেরোল/বেতন',             icon:'💵', group:'শিক্ষক' },
+  { id:'leave',       label:'ছুটির আবেদন',            icon:'📝', group:'শিক্ষক' },
+  { id:'remarks',     label:'মন্তব্য অনুমোদন',        icon:'💬', group:'শিক্ষক' },
+  { id:'routine',     label:'ক্লাস রুটিন',            icon:'🗓️', group:'একাডেমিক' },
+  { id:'syllabus',    label:'সিলেবাস',                 icon:'📚', group:'একাডেমিক' },
+  { id:'exampaper',   label:'প্রশ্নপত্র তৈরি',         icon:'📄', group:'একাডেমিক' },
+  { id:'finance',     label:'আয়-ব্যয়',               icon:'💰', group:'হিসাব' },
+  { id:'hostel',      label:'হোস্টেল ব্যবস্থাপনা',    icon:'🏠', group:'হোস্টেল' },
+  { id:'notice',      label:'বিজ্ঞপ্তি',               icon:'📢', group:'অন্যান্য' },
+  { id:'letters',     label:'পত্র ও প্রমাণপত্র',       icon:'📜', group:'অন্যান্য' },
+  { id:'idcard',      label:'আইডি কার্ড',              icon:'🪪', group:'অন্যান্য' },
+  { id:'whatsapp',    label:'WhatsApp টেমপ্লেট',       icon:'📲', group:'অন্যান্য' },
+  { id:'stock',       label:'মালামাল স্টক',            icon:'📦', group:'অন্যান্য' },
+  { id:'settings',    label:'সেটিংস',                  icon:'⚙️', group:'অ্যাডমিন' },
+];
+
+// ---- Write/Delete permission keys ----
+const ALL_WRITE_PERMS = [
+  { id:'w_student_add',    label:'শিক্ষার্থী যোগ/সম্পাদনা',    icon:'✏️' },
+  { id:'w_student_delete', label:'শিক্ষার্থী মুছে ফেলা',        icon:'🗑️' },
+  { id:'w_fee',            label:'ফি আদায়/সম্পাদনা',           icon:'💳' },
+  { id:'w_attendance',     label:'হাজিরা সংরক্ষণ',              icon:'✅' },
+  { id:'w_result',         label:'ফলাফল যোগ/মুছুন',             icon:'📋' },
+  { id:'w_teacher_manage', label:'শিক্ষক/স্টাফ ব্যবস্থাপনা',    icon:'👨‍🏫' },
+  { id:'w_payroll',        label:'বেতন প্রদান',                 icon:'💵' },
+  { id:'w_leave_approve',  label:'ছুটি অনুমোদন',               icon:'📝' },
+  { id:'w_finance',        label:'আয়-ব্যয় এন্ট্রি',            icon:'💰' },
+  { id:'w_hostel',         label:'হোস্টেল ব্যবস্থাপনা',         icon:'🏠' },
+  { id:'w_notice',         label:'বিজ্ঞপ্তি প্রকাশ',            icon:'📢' },
+  { id:'w_stock',          label:'স্টক এন্ট্রি',                icon:'📦' },
+  { id:'w_settings',       label:'সেটিংস পরিবর্তন',             icon:'⚙️' },
+];
+
+// ---- প্রিসেট রোল টেমপ্লেট ----
+const ROLE_PRESETS = {
+  'শ্রেণি শিক্ষক': {
+    pages: ['dashboard','attendance','results','routine','syllabus','remarks','leave'],
+    writes: ['w_attendance','w_result']
+  },
+  'অফিস সহকারী': {
+    pages: ['dashboard','students','fee','attendance','notice','letters','idcard'],
+    writes: ['w_student_add','w_fee','w_attendance','w_notice']
+  },
+  'হোস্টেল সুপার': {
+    pages: ['dashboard','hostel','students','notice'],
+    writes: ['w_hostel']
+  },
+  'হিসাবরক্ষক': {
+    pages: ['dashboard','fee','finance','payroll'],
+    writes: ['w_fee','w_finance','w_payroll']
+  },
+  'স্টাফ': {
+    pages: ['dashboard'],
+    writes: ['w_stock']
+  },
+};
+
+// ---- canAccess — permission check ----
+function canAccess(pageId) {
+  if(!currentUser) return false;
+  if(currentUser.role === 'admin') return true;
+  var perms = getTeacherPerms(currentUser.id);
+  if(!perms) return false;
+  return (perms.pages||[]).indexOf(pageId) > -1;
+}
+function canWrite(permId) {
+  if(!currentUser) return false;
+  if(currentUser.role === 'admin') return true;
+  var perms = getTeacherPerms(currentUser.id);
+  if(!perms) return false;
+  return (perms.writes||[]).indexOf(permId) > -1;
+}
+function getTeacherPerms(tid) {
+  return ((data.settings.userPerms)||{})[tid] || null;
+}
+
+// ---- Permission save ----
+function saveUserPerms(tid, perms) {
+  if(!data.settings.userPerms) data.settings.userPerms = {};
+  data.settings.userPerms[tid] = perms;
+  save('settings');
+  toast('পার্মিশন সংরক্ষিত হয়েছে ✅');
+}
+
+// ---- Access log ----
+function logAccess(userId, userName, action) {
+  if(!data.settings.accessLog) data.settings.accessLog = [];
+  data.settings.accessLog.unshift({
+    uid: userId, name: userName, action: action,
+    time: new Date().toLocaleString('bn-BD')
+  });
+  // max 100 entries
+  if(data.settings.accessLog.length > 100) data.settings.accessLog = data.settings.accessLog.slice(0,100);
+}
+
+// ---- Tab switcher ----
+var _activePermTab = 'users';
+function switchPermTab(tab) {
+  _activePermTab = tab;
+  ['users','edit','log'].forEach(function(t) {
+    var sec = document.getElementById('permSection-'+t);
+    var btn = document.getElementById('permTab-'+t);
+    if(sec) sec.style.display = t===tab ? '' : 'none';
+    if(btn) { btn.className = t===tab ? 'btn btn-primary btn-sm' : 'btn btn-outline btn-sm'; }
+  });
+  if(tab==='users') renderPermUsers();
+  if(tab==='log') renderAccessLog();
+}
+
+// ---- Render users list ----
+function renderPermUsers() {
+  var el = document.getElementById('permUserList');
+  if(!el) return;
+  var teachers = data.teachers || [];
+  if(teachers.length === 0) {
+    el.innerHTML = '<p style="color:var(--text-muted);font-size:13px;">কোনো শিক্ষক/স্টাফ নেই।</p>';
+    return;
+  }
+  el.innerHTML = teachers.map(function(t) {
+    var perms = getTeacherPerms(t.id);
+    var pageCount = perms ? (perms.pages||[]).length : 0;
+    var writeCount = perms ? (perms.writes||[]).length : 0;
+    var hasAccess = perms && pageCount > 0;
+    var roleLabel = t.type || 'শিক্ষক';
+    var avatarEmoji = t.type==='স্টাফ' ? '👤' : t.type==='পিয়ন' ? '🧹' : '👨‍🏫';
+    var archived = t.archived ? '<span style="background:#6c757d;color:#fff;font-size:10px;padding:1px 6px;border-radius:8px;margin-left:6px;">আর্কাইভ</span>' : '';
+    return '<div class="user-card" style="'+(t.archived?'opacity:.6;':'')+(hasAccess?'border-color:var(--primary-light);':'')+'">'+
+      '<div class="user-card-header">'+
+        '<div class="user-card-avatar">'+avatarEmoji+'</div>'+
+        '<div style="flex:1">'+
+          '<div class="user-card-name">'+t.name+archived+'</div>'+
+          '<div class="user-card-role">'+roleLabel+(t.assignedClass?' — শ্রেণি: '+t.assignedClass:'')+'</div>'+
+        '</div>'+
+        '<button class="btn btn-primary btn-sm" onclick="openPermEdit(\''+t.id+'\')">🔧 পার্মিশন সেট</button>'+
+      '</div>'+
+      '<div style="margin-top:6px;">'+
+        (hasAccess
+          ? '<span class="perm-badge perm-badge-green">'+pageCount+' টি পেজ</span>'+
+            '<span class="perm-badge perm-badge-blue">'+writeCount+' টি লেখার অনুমতি</span>'+
+            (perms.preset?'<span class="perm-badge perm-badge-gray">📋 '+perms.preset+'</span>':'')
+          : '<span class="perm-badge perm-badge-red">❌ কোনো একসেস নেই</span>'
+        )+
+      '</div>'+
+    '</div>';
+  }).join('');
+}
+
+// ---- Open permission editor ----
+function openPermEdit(tid) {
+  switchPermTab('edit');
+  var t = data.teachers.find(function(x){ return x.id===tid; });
+  if(!t) return;
+  var perms = getTeacherPerms(tid) || { pages:[], writes:[], preset:'' };
+  var groups = {};
+  ALL_PAGES.forEach(function(p) {
+    if(!groups[p.group]) groups[p.group] = [];
+    groups[p.group].push(p);
+  });
+  var html = '<div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;padding:12px 14px;background:var(--primary-ultra-light);border-radius:10px;border:1.5px solid var(--primary);">';
+  html += '<div class="user-card-avatar" style="width:44px;height:44px;">'+(t.type==='স্টাফ'?'👤':t.type==='পিয়ন'?'🧹':'👨‍🏫')+'</div>';
+  html += '<div><div style="font-weight:700;font-size:15px;">'+t.name+'</div><div style="font-size:12px;color:var(--text-muted);">'+(t.type||'শিক্ষক')+(t.assignedClass?' — '+t.assignedClass:'')+'</div></div>';
+  html += '<button class="btn btn-outline btn-sm" style="margin-left:auto;" onclick="switchPermTab(\'users\')">← ফিরে যান</button></div>';
+
+  // Preset quick-select
+  html += '<div class="perm-section"><div class="perm-section-title">⚡ প্রিসেট রোল (দ্রুত সেট করুন)</div>';
+  html += '<div style="display:flex;gap:8px;flex-wrap:wrap;padding:10px;border:1px solid var(--border);border-radius:0 0 8px 8px;">';
+  Object.keys(ROLE_PRESETS).forEach(function(rname) {
+    var isActive = perms.preset === rname;
+    html += '<button class="btn btn-sm '+(isActive?'btn-primary':'btn-outline')+'" onclick="applyPreset(\''+tid+'\',\''+rname+'\')">'+rname+'</button>';
+  });
+  html += '<button class="btn btn-sm btn-outline" onclick="clearAllPerms(\''+tid+'\')">🚫 সব সরান</button>';
+  html += '<button class="btn btn-sm btn-outline" onclick="setAllPerms(\''+tid+'\')">✅ সব দিন</button>';
+  html += '</div></div>';
+
+  // Page access checkboxes by group
+  html += '<div class="perm-section"><div class="perm-section-title">📄 পেজ একসেস — কোন পেজ দেখতে পারবে</div>';
+  html += '<div style="border:1px solid var(--border);border-top:none;border-radius:0 0 8px 8px;padding:10px;">';
+  var grpOrder = ['সাধারণ','শিক্ষার্থী','শিক্ষক','একাডেমিক','হিসাব','হোস্টেল','অন্যান্য','অ্যাডমিন'];
+  grpOrder.forEach(function(grp) {
+    if(!groups[grp]) return;
+    html += '<div style="margin-bottom:10px;"><div style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;margin-bottom:6px;letter-spacing:.5px;">'+grp+'</div>';
+    html += '<div style="display:flex;flex-wrap:wrap;gap:6px;">';
+    groups[grp].forEach(function(p) {
+      var checked = perms.pages.indexOf(p.id) > -1;
+      html += '<label style="display:flex;align-items:center;gap:6px;padding:5px 10px;border-radius:6px;background:'+(checked?'var(--primary-ultra-light)':'#fafafa')+';border:1px solid '+(checked?'var(--primary)':'#eee')+';cursor:pointer;font-size:12px;user-select:none;" onclick="togglePagePerm(\''+tid+'\',\''+p.id+'\',this)">';
+      html += '<input type="checkbox" '+(checked?'checked':'')+' style="accent-color:var(--primary);" onclick="event.stopPropagation()"> ';
+      html += p.icon+' '+p.label+'</label>';
+    });
+    html += '</div></div>';
+  });
+  html += '</div></div>';
+
+  // Write permissions
+  html += '<div class="perm-section"><div class="perm-section-title">✏️ লেখার অনুমতি — কী কী করতে পারবে</div>';
+  html += '<div style="border:1px solid var(--border);border-top:none;border-radius:0 0 8px 8px;padding:10px;display:flex;flex-wrap:wrap;gap:6px;">';
+  ALL_WRITE_PERMS.forEach(function(wp) {
+    var checked = perms.writes.indexOf(wp.id) > -1;
+    html += '<label style="display:flex;align-items:center;gap:6px;padding:5px 12px;border-radius:6px;background:'+(checked?'#d4edda':'#fafafa')+';border:1px solid '+(checked?'#28a745':'#eee')+';cursor:pointer;font-size:12px;user-select:none;" onclick="toggleWritePerm(\''+tid+'\',\''+wp.id+'\',this)">';
+    html += '<input type="checkbox" '+(checked?'checked':'')+' style="accent-color:#28a745;" onclick="event.stopPropagation()"> ';
+    html += wp.icon+' '+wp.label+'</label>';
+  });
+  html += '</div></div>';
+
+  // Save button
+  html += '<div style="margin-top:16px;display:flex;gap:10px;justify-content:flex-end;">';
+  html += '<button class="btn btn-outline" onclick="switchPermTab(\'users\')">বাতিল</button>';
+  html += '<button class="btn btn-primary" onclick="savePermEdit(\''+tid+'\')">💾 সংরক্ষণ করুন</button>';
+  html += '</div>';
+
+  document.getElementById('permEditContent').innerHTML = html;
+  // store draft
+  window._permDraft = { tid: tid, pages: perms.pages.slice(), writes: perms.writes.slice(), preset: perms.preset||'' };
+}
+
+function togglePagePerm(tid, pageId, labelEl) {
+  if(!window._permDraft || window._permDraft.tid !== tid) return;
+  var arr = window._permDraft.pages;
+  var idx = arr.indexOf(pageId);
+  var cb = labelEl.querySelector('input');
+  if(idx > -1) {
+    arr.splice(idx, 1);
+    if(cb) cb.checked = false;
+    labelEl.style.background = '#fafafa';
+    labelEl.style.border = '1px solid #eee';
+  } else {
+    arr.push(pageId);
+    if(cb) cb.checked = true;
+    labelEl.style.background = 'var(--primary-ultra-light)';
+    labelEl.style.border = '1px solid var(--primary)';
+  }
+  window._permDraft.preset = '';
+}
+
+function toggleWritePerm(tid, permId, labelEl) {
+  if(!window._permDraft || window._permDraft.tid !== tid) return;
+  var arr = window._permDraft.writes;
+  var idx = arr.indexOf(permId);
+  var cb = labelEl.querySelector('input');
+  if(idx > -1) {
+    arr.splice(idx, 1);
+    if(cb) cb.checked = false;
+    labelEl.style.background = '#fafafa';
+    labelEl.style.border = '1px solid #eee';
+  } else {
+    arr.push(permId);
+    if(cb) cb.checked = true;
+    labelEl.style.background = '#d4edda';
+    labelEl.style.border = '1px solid #28a745';
+  }
+  window._permDraft.preset = '';
+}
+
+function applyPreset(tid, rname) {
+  var preset = ROLE_PRESETS[rname];
+  if(!preset) return;
+  if(!window._permDraft) window._permDraft = { tid:tid, pages:[], writes:[], preset:'' };
+  window._permDraft.pages = preset.pages.slice();
+  window._permDraft.writes = preset.writes.slice();
+  window._permDraft.preset = rname;
+  savePermEdit(tid); // save immediately and re-render
+  openPermEdit(tid);
+  toast('প্রিসেট "'+rname+'" প্রয়োগ হয়েছে ✅');
+}
+
+function clearAllPerms(tid) {
+  if(!confirm('এই ব্যবহারকারীর সব একসেস সরিয়ে দেবেন?')) return;
+  window._permDraft = { tid:tid, pages:[], writes:[], preset:'' };
+  savePermEdit(tid);
+  openPermEdit(tid);
+}
+
+function setAllPerms(tid) {
+  window._permDraft = {
+    tid: tid,
+    pages: ALL_PAGES.map(function(p){ return p.id; }),
+    writes: ALL_WRITE_PERMS.map(function(w){ return w.id; }),
+    preset: 'সব একসেস'
+  };
+  savePermEdit(tid);
+  openPermEdit(tid);
+}
+
+function savePermEdit(tid) {
+  if(!window._permDraft || window._permDraft.tid !== tid) return;
+  saveUserPerms(tid, {
+    pages: window._permDraft.pages,
+    writes: window._permDraft.writes,
+    preset: window._permDraft.preset||''
+  });
+  renderPermUsers();
+}
+
+// ---- Access log render ----
+function renderAccessLog() {
+  var el = document.getElementById('accessLogList');
+  if(!el) return;
+  var log = (data.settings.accessLog||[]);
+  if(log.length===0) { el.innerHTML='<p style="color:var(--text-muted);">কোনো লগ নেই।</p>'; return; }
+  el.innerHTML = '<table style="width:100%;border-collapse:collapse;">'+
+    '<thead><tr style="background:var(--primary-ultra-light);font-size:11px;">'+
+    '<th style="padding:6px;text-align:left;">নাম</th><th style="padding:6px;text-align:left;">কাজ</th><th style="padding:6px;text-align:left;">সময়</th></tr></thead><tbody>'+
+    log.map(function(l,i){
+      return '<tr style="border-bottom:1px solid var(--border);background:'+(i%2===0?'#fff':'#fafafa')+';">'+
+        '<td style="padding:6px;font-weight:600;">'+l.name+'</td>'+
+        '<td style="padding:6px;color:var(--text-muted);">'+l.action+'</td>'+
+        '<td style="padding:6px;font-size:11px;color:var(--text-muted);">'+l.time+'</td>'+
+      '</tr>';
+    }).join('')+'</tbody></table>';
+}
+
+// ---- showPage — permission guard ----
+// (existing showPage wrapped with permission check)
+var _originalShowPage = showPage;
+showPage = function(id) {
+  if(currentUser && currentUser.role !== 'admin' && !canAccess(id)) {
+    toast('❌ এই পেজে আপনার একসেস নেই।', 'error');
+    return;
+  }
+  _originalShowPage(id);
+};
+
+// ---- Custom user dashboard (non-admin with page access) ----
+function showCustomUserDash() {
+  hideLoginScreen();
+  document.getElementById('sidebar').style.display = 'flex';
+  document.getElementById('main').style.display = 'flex';
+  var perms = getTeacherPerms(currentUser.id) || { pages:[], writes:[] };
+  // sidebar nav filter
+  document.querySelectorAll('.nav-item').forEach(function(nav) {
+    var oc = nav.getAttribute('onclick')||'';
+    var m = oc.match(/showPage\('([^']+)'\)/);
+    if(m) {
+      var pageId = m[1];
+      nav.style.display = perms.pages.indexOf(pageId) > -1 ? '' : 'none';
+    }
+  });
+  // first available page
+  var firstPage = perms.pages[0] || 'dashboard';
+  init();
+  showPage(firstPage);
+  // header
+  document.getElementById('header').innerHTML =
+    '<div class="header-title" style="font-size:14px;">👤 '+currentUser.name+' &nbsp;<span style="font-size:11px;opacity:.7;font-weight:400;">('+currentUser.type+')</span></div>'+
+    '<div id="headerDate" style="font-size:12px;"></div>'+
+    '<button class="header-btn btn-outline" onclick="doLogout()" style="font-size:12px;">🚪 লগআউট</button>';
+  document.getElementById('headerDate').textContent = new Date().toLocaleDateString('bn-BD',{weekday:'short',year:'numeric',month:'long',day:'numeric'});
+}
+
+
 
 // ===================== INIT =====================
 function init() {
