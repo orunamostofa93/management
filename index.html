@@ -359,79 +359,70 @@
   .cls-chip .chip-del:hover { color:#900; }
   .cls-mismatch-warn { background:#fff3cd; border:1.5px solid #ffc107; border-radius:10px; padding:12px 14px; margin-top:8px; font-size:12px; }
 
-  /* ===== WIDGET DRAG SYSTEM ===== */
+  /* ===== WIDGET SYSTEM ===== */
   #dashWidgetToolbar { display:none; }
   #dashWidgetToolbar.active { display:flex !important; }
-
-  /* flat list layout — all widgets stacked, full width on mobile, multi-col on desktop */
   #dashWidgetContainer { display:flex; flex-direction:column; gap:14px; }
+  #dashEditBtn { display:flex; }
 
-  .wg-slot {
-    position:relative; transition:opacity .2s, transform .2s, box-shadow .2s;
-    border-radius:12px;
+  /* Each widget slot */
+  .wg-slot { position:relative; border-radius:12px; transition:transform .15s, box-shadow .15s; }
+
+  /* Control bar — hidden normally, shown in edit mode */
+  .wg-ctrl { display:none; }
+  .dash-edit-mode .wg-ctrl {
+    display:flex; align-items:center; gap:6px;
+    position:absolute; top:-14px; left:0; right:0; z-index:30;
+    background:linear-gradient(90deg, var(--primary), var(--primary-light));
+    border-radius:10px 10px 0 0;
+    padding:5px 8px;
   }
-  .wg-slot.wg-dragging {
-    opacity:.35; transform:scale(.97) rotate(1deg);
-    box-shadow:0 8px 32px rgba(0,0,0,.18);
-    z-index:100;
-  }
-  .wg-slot.wg-drag-over {
-    outline:3px dashed var(--primary);
-    outline-offset:3px;
-    background:var(--primary-ultra-light);
-    border-radius:12px;
-  }
-  /* edit handle bar */
-  .wg-handle-bar { display:none; }
-  .dash-edit-mode .wg-slot .wg-handle-bar {
-    display:flex; align-items:center; justify-content:space-between;
-    position:absolute; top:0; left:0; right:0; z-index:20;
-    background:linear-gradient(90deg,var(--primary) 0%,var(--primary-light) 100%);
-    border-radius:12px 12px 0 0; padding:5px 10px; gap:6px;
-    touch-action:none; /* needed for touch drag */
-  }
-  .dash-edit-mode .wg-slot > .card,
-  .dash-edit-mode .wg-slot > div > .card {
-    padding-top:34px !important;
+  .dash-edit-mode .wg-slot > .card {
     border:2px solid var(--primary-light) !important;
+    border-radius:0 0 12px 12px !important;
+    margin-top:14px;
   }
-  .wg-drag-handle {
-    display:flex; align-items:center; gap:4px;
-    color:#fff; font-size:20px; cursor:grab;
-    user-select:none; touch-action:none;
-    padding:2px 4px; border-radius:4px;
-    background:rgba(255,255,255,.15);
-    min-width:36px; justify-content:center;
+
+  /* Arrow move buttons */
+  .wg-btn {
+    border:none; border-radius:6px; cursor:pointer;
+    font-size:15px; line-height:1;
+    padding:5px 9px;
+    font-family:inherit; font-weight:700;
+    transition:background .1s, transform .1s;
+    flex-shrink:0;
   }
-  .wg-drag-handle:active { cursor:grabbing; background:rgba(255,255,255,.3); }
-  .wg-title-lbl { color:#fff; font-size:11px; font-weight:700; flex:1; text-align:center; opacity:.9; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-  .wg-remove-btn {
-    background:rgba(255,80,80,.25); border:1px solid rgba(255,255,255,.4);
-    color:#fff; border-radius:6px; padding:3px 10px; font-size:12px;
-    cursor:pointer; font-family:inherit; white-space:nowrap; font-weight:700;
-    min-width:60px; text-align:center;
+  .wg-btn:active { transform:scale(.92); }
+  .wg-btn-move {
+    background:rgba(255,255,255,.22); color:#fff;
   }
-  .wg-remove-btn:active { background:rgba(220,50,50,.8); }
-  /* ghost clone during touch drag */
-  #wgTouchGhost {
-    position:fixed; pointer-events:none; z-index:9999;
-    opacity:.75; border-radius:12px; box-shadow:0 12px 40px rgba(0,0,0,.3);
-    border:3px solid var(--primary);
-    transform:scale(1.03) rotate(1.5deg);
-    transition:none;
-    background:#fff;
-    overflow:hidden;
+  .wg-btn-move:disabled { opacity:.25; cursor:default; }
+  .wg-btn-move:not(:disabled):active { background:rgba(255,255,255,.45); }
+
+  /* Widget name */
+  .wg-name {
+    flex:1; color:#fff; font-size:11px; font-weight:700;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+    text-align:center; opacity:.95;
   }
-  /* edit mode shimmer overlay on card content */
-  .dash-edit-mode .wg-slot::after {
-    content:'';
-    position:absolute; inset:0; top:34px;
-    border-radius:0 0 12px 12px;
-    background:transparent;
-    pointer-events:all; /* block clicks on content in edit mode */
+
+  /* Remove button */
+  .wg-btn-del {
+    background:rgba(220,50,50,.5); color:#fff;
+    border:1px solid rgba(255,255,255,.3);
+    padding:4px 10px; font-size:12px;
+    white-space:nowrap;
+  }
+  .wg-btn-del:active { background:rgba(200,30,30,.9); }
+
+  /* Moving animation */
+  .wg-slot.wg-moving {
+    transform:scale(.98);
+    box-shadow:0 6px 24px rgba(0,0,0,.18);
     z-index:10;
   }
-  /* widget picker */
+
+  /* Widget picker */
   .wg-picker-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(130px,1fr)); gap:10px; margin-top:12px; }
   .wg-picker-item {
     border:2px solid var(--border); border-radius:10px; padding:12px 8px;
@@ -446,41 +437,6 @@
   .wg-picker-icon { font-size:26px; margin-bottom:5px; }
   .wg-picker-label { font-size:11px; font-weight:700; color:var(--text); line-height:1.3; }
   .wg-picker-used-tag { font-size:10px; color:#888; margin-top:3px; }
-  /* edit mode toggle button shown always */
-  #dashEditBtn { display:flex; }
-
-  /* ===== WIDGET RESIZE ===== */
-  .wg-slot { overflow:visible; }
-  .wg-slot > .card { box-sizing:border-box; overflow:hidden; }
-  .wg-slot > .card .card-body { overflow-y:auto; }
-
-  .wg-resize-se, .wg-resize-s { display:none; }
-  .dash-edit-mode .wg-resize-se {
-    display:flex; align-items:center; justify-content:center;
-    position:absolute; bottom:0; right:0; z-index:25;
-    width:26px; height:26px;
-    cursor:se-resize;
-    background:var(--primary);
-    border-radius:0 0 12px 0;
-    color:#fff; font-size:13px;
-    user-select:none; touch-action:none;
-  }
-  .dash-edit-mode .wg-resize-s {
-    display:block;
-    position:absolute; bottom:0; left:26px; right:26px; z-index:24;
-    height:8px; cursor:s-resize;
-    background:linear-gradient(var(--primary-light), var(--primary));
-    border-radius:0 0 4px 4px; opacity:.5;
-    user-select:none; touch-action:none;
-  }
-  .wg-size-badge {
-    display:none; position:absolute; bottom:10px; left:50%;
-    transform:translateX(-50%);
-    background:rgba(0,0,0,.6); color:#fff; border-radius:6px;
-    padding:2px 10px; font-size:11px; z-index:30; pointer-events:none;
-    white-space:nowrap; font-weight:700;
-  }
-  .wg-resizing .wg-size-badge { display:block; }
 
 </style>
 </head>
@@ -9183,7 +9139,6 @@ function addStudentRankingToProfile(sid) {
 // ╚══════════════════════════════════════════════════════════════════╝
 
 var _dashEditMode = false;
-var _wgDragSrc = null; // slot element being dragged
 
 // Widget definitions
 var WG_DEFS = {
@@ -9291,14 +9246,12 @@ var WG_DEFS = {
   },
 };
 
-// Default layout: flat ordered list of widget ids
 var WG_DEFAULT = [
   'att_donut','fee_bar','class_bar',
   'birthday','pending_leave','today_summary',
   'quick_actions','notices',
   'top_students','top_teachers',
-  'pending_payments',
-  'absent_list'
+  'pending_payments','absent_list'
 ];
 
 function wgLoadLayout() {
@@ -9308,63 +9261,8 @@ function wgLoadLayout() {
 function wgSaveLayout(layout) {
   try { localStorage.setItem('mms_wg', JSON.stringify(layout)); } catch(e){}
 }
-// Heights stored separately: { widgetId: heightPx }
-function wgLoadHeights() {
-  try { var s=localStorage.getItem('mms_wg_h'); if(s) return JSON.parse(s); } catch(e){}
-  return {};
-}
-function wgSaveHeight(wid, h) {
-  var hs = wgLoadHeights(); hs[wid] = h;
-  try { localStorage.setItem('mms_wg_h', JSON.stringify(hs)); } catch(e){}
-}
-function wgResetHeights() {
-  try { localStorage.removeItem('mms_wg_h'); } catch(e){}
-}
 
-// ---- Resize logic ----
-var _rzWid=null, _rzSlot=null, _rzStartY=0, _rzStartH=0;
-
-function wgStartResize(e, wid, slot) {
-  e.preventDefault(); e.stopPropagation();
-  _rzWid = wid; _rzSlot = slot;
-  _rzStartY = (e.touches ? e.touches[0].clientY : e.clientY);
-  _rzStartH = slot.offsetHeight;
-  slot.classList.add('wg-resizing');
-  document.addEventListener('mousemove', wgDoResize);
-  document.addEventListener('touchmove', wgDoResize, {passive:false});
-  document.addEventListener('mouseup',   wgEndResize);
-  document.addEventListener('touchend',  wgEndResize);
-}
-function wgDoResize(e) {
-  if(!_rzSlot) return;
-  if(e.cancelable) e.preventDefault();
-  var y = e.touches ? e.touches[0].clientY : e.clientY;
-  var newH = Math.max(80, _rzStartH + (y - _rzStartY));
-  _rzSlot.style.height = newH+'px';
-  var badge = _rzSlot.querySelector('.wg-size-badge');
-  if(badge) badge.textContent = Math.round(newH)+'px';
-}
-function wgEndResize() {
-  if(_rzSlot) {
-    var h = _rzSlot.offsetHeight;
-    wgSaveHeight(_rzWid, h);
-    _rzSlot.classList.remove('wg-resizing');
-  }
-  _rzWid=null; _rzSlot=null;
-  document.removeEventListener('mousemove', wgDoResize);
-  document.removeEventListener('touchmove', wgDoResize);
-  document.removeEventListener('mouseup',   wgEndResize);
-  document.removeEventListener('touchend',  wgEndResize);
-}
-
-// ---- Touch drag state ----
-var _touchDragWid = null;
-var _touchGhost = null;
-var _touchOverWid = null;
-var _touchStartX = 0, _touchStartY = 0;
-var _touchDragEl = null;
-
-// ---- Render all widgets into container ----
+// ---- Render all widgets ----
 function renderWidgets() {
   var container = document.getElementById('dashWidgetContainer');
   if(!container) return;
@@ -9373,158 +9271,90 @@ function renderWidgets() {
   else container.classList.remove('dash-edit-mode');
 
   var layout = wgLoadLayout();
+  var total = layout.length;
 
-  layout.forEach(function(wid) {
+  layout.forEach(function(wid, idx) {
     var def = WG_DEFS[wid]; if(!def) return;
     var slot = document.createElement('div');
     slot.className = 'wg-slot';
     slot.dataset.wid = wid;
 
-    // Handle bar (shown in edit mode via CSS)
-    var hbar = document.createElement('div');
-    hbar.className = 'wg-handle-bar';
-    hbar.innerHTML =
-      '<div class="wg-drag-handle" title="ধরে টানুন">⠿⠿ <span style="font-size:12px;opacity:.8;">সরান</span></div>'
-      +'<span class="wg-title-lbl">'+def.icon+' '+def.label+'</span>'
-      +'<button class="wg-remove-btn" onclick="wgRemove(\''+wid+'\')">✕ বাদ</button>';
-    slot.appendChild(hbar);
+    // Control bar (shown only in edit mode via CSS)
+    var ctrl = document.createElement('div');
+    ctrl.className = 'wg-ctrl';
+    // Up button
+    var btnUp = document.createElement('button');
+    btnUp.className = 'wg-btn wg-btn-move';
+    btnUp.innerHTML = '▲';
+    btnUp.title = 'উপরে সরান';
+    if(idx === 0) btnUp.disabled = true;
+    btnUp.onclick = function(e){ e.stopPropagation(); wgMove(wid, -1); };
+
+    // Down button
+    var btnDn = document.createElement('button');
+    btnDn.className = 'wg-btn wg-btn-move';
+    btnDn.innerHTML = '▼';
+    btnDn.title = 'নিচে সরান';
+    if(idx === total-1) btnDn.disabled = true;
+    btnDn.onclick = function(e){ e.stopPropagation(); wgMove(wid, 1); };
+
+    // Name label
+    var lbl = document.createElement('span');
+    lbl.className = 'wg-name';
+    lbl.textContent = def.icon + ' ' + def.label;
+
+    // Remove button
+    var btnDel = document.createElement('button');
+    btnDel.className = 'wg-btn wg-btn-del';
+    btnDel.innerHTML = '✕ বাদ';
+    btnDel.onclick = function(e){ e.stopPropagation(); wgRemove(wid); };
+
+    ctrl.appendChild(btnUp);
+    ctrl.appendChild(btnDn);
+    ctrl.appendChild(lbl);
+    ctrl.appendChild(btnDel);
+    slot.appendChild(ctrl);
     slot.insertAdjacentHTML('beforeend', def.render());
-
-    // Resize handles
-    var rseSE = document.createElement('div');
-    rseSE.className = 'wg-resize-se';
-    rseSE.title = 'টেনে সাইজ পরিবর্তন করুন';
-    rseSE.textContent = '⇲';
-    var rseS  = document.createElement('div');
-    rseS.className = 'wg-resize-s';
-    var badge = document.createElement('div');
-    badge.className = 'wg-size-badge';
-    slot.appendChild(rseSE);
-    slot.appendChild(rseS);
-    slot.appendChild(badge);
-
-    // Restore saved height
-    var heights = wgLoadHeights();
-    if(heights[wid]) slot.style.height = heights[wid]+'px';
-
-    // Resize events — SE corner (mouse + touch)
-    rseSE.addEventListener('mousedown',  function(e){ wgStartResize(e, wid, slot); });
-    rseSE.addEventListener('touchstart', function(e){ wgStartResize(e, wid, slot); }, {passive:false});
-    rseS.addEventListener('mousedown',   function(e){ wgStartResize(e, wid, slot); });
-    rseS.addEventListener('touchstart',  function(e){ wgStartResize(e, wid, slot); }, {passive:false});
-
-    // ---- Mouse/Desktop drag events ----
-    slot.setAttribute('draggable', _dashEditMode ? 'true' : 'false');
-    slot.addEventListener('dragstart', function(e) {
-      if(!_dashEditMode) { e.preventDefault(); return; }
-      _wgDragSrc = wid;
-      e.dataTransfer.effectAllowed = 'move';
-      e.dataTransfer.setData('text/plain', wid);
-      setTimeout(function(){ slot.classList.add('wg-dragging'); }, 0);
-    });
-    slot.addEventListener('dragend', function() {
-      slot.classList.remove('wg-dragging');
-      document.querySelectorAll('.wg-drag-over').forEach(function(el){ el.classList.remove('wg-drag-over'); });
-      _wgDragSrc = null;
-    });
-    slot.addEventListener('dragover', function(e) {
-      if(!_dashEditMode || !_wgDragSrc) return;
-      e.preventDefault(); e.dataTransfer.dropEffect = 'move';
-      document.querySelectorAll('.wg-drag-over').forEach(function(el){ el.classList.remove('wg-drag-over'); });
-      slot.classList.add('wg-drag-over');
-    });
-    slot.addEventListener('dragleave', function() { slot.classList.remove('wg-drag-over'); });
-    slot.addEventListener('drop', function(e) {
-      e.preventDefault();
-      slot.classList.remove('wg-drag-over');
-      var fromWid = e.dataTransfer.getData('text/plain'), toWid = wid;
-      if(!fromWid || fromWid === toWid) return;
-      var lay = wgLoadLayout();
-      var fi = lay.indexOf(fromWid), ti = lay.indexOf(toWid);
-      if(fi > -1 && ti > -1) { lay.splice(fi, 1); lay.splice(ti, 0, fromWid); }
-      wgSaveLayout(lay); renderWidgets(); renderDashboardData();
-    });
-
-    // ---- Touch drag (for mobile) ----
-    var dh = hbar.querySelector('.wg-drag-handle');
-    if(dh) {
-      dh.addEventListener('touchstart', function(e) {
-        if(!_dashEditMode) return;
-        e.preventDefault();
-        var t = e.touches[0];
-        _touchDragWid = wid;
-        _touchDragEl = slot;
-        _touchStartX = t.clientX; _touchStartY = t.clientY;
-        // Clone ghost
-        var ghost = slot.cloneNode(true);
-        ghost.id = 'wgTouchGhost';
-        ghost.querySelector('.wg-handle-bar') && (ghost.querySelector('.wg-handle-bar').style.display='flex');
-        ghost.style.width = slot.offsetWidth+'px';
-        ghost.style.left = slot.getBoundingClientRect().left+'px';
-        ghost.style.top = slot.getBoundingClientRect().top+'px';
-        document.body.appendChild(ghost);
-        _touchGhost = ghost;
-        slot.classList.add('wg-dragging');
-      }, {passive:false});
-      dh.addEventListener('touchmove', function(e) {
-        if(!_touchGhost) return;
-        e.preventDefault();
-        var t = e.touches[0];
-        var dx = t.clientX - _touchStartX, dy = t.clientY - _touchStartY;
-        var rect = _touchDragEl.getBoundingClientRect();
-        _touchGhost.style.left = (rect.left + dx)+'px';
-        _touchGhost.style.top  = (rect.top  + dy)+'px';
-        // Find target slot under finger
-        _touchGhost.style.display='none';
-        var el = document.elementFromPoint(t.clientX, t.clientY);
-        _touchGhost.style.display='';
-        var targetSlot = el ? el.closest('.wg-slot') : null;
-        document.querySelectorAll('.wg-drag-over').forEach(function(x){ x.classList.remove('wg-drag-over'); });
-        if(targetSlot && targetSlot !== _touchDragEl) {
-          _touchOverWid = targetSlot.dataset.wid;
-          targetSlot.classList.add('wg-drag-over');
-        } else { _touchOverWid = null; }
-      }, {passive:false});
-      dh.addEventListener('touchend', function() {
-        if(_touchGhost) { _touchGhost.remove(); _touchGhost = null; }
-        if(_touchDragEl) _touchDragEl.classList.remove('wg-dragging');
-        document.querySelectorAll('.wg-drag-over').forEach(function(x){ x.classList.remove('wg-drag-over'); });
-        if(_touchDragWid && _touchOverWid && _touchDragWid !== _touchOverWid) {
-          var lay = wgLoadLayout();
-          var fi = lay.indexOf(_touchDragWid), ti = lay.indexOf(_touchOverWid);
-          if(fi > -1 && ti > -1) { lay.splice(fi, 1); lay.splice(ti, 0, _touchDragWid); }
-          wgSaveLayout(lay); renderWidgets(); renderDashboardData();
-        }
-        _touchDragWid = null; _touchOverWid = null; _touchDragEl = null;
-      });
-    }
-
     container.appendChild(slot);
   });
 
-  // Always re-fill data after rendering
   renderDashboardData();
 }
 
+function wgMove(wid, dir) {
+  var lay = wgLoadLayout();
+  var i = lay.indexOf(wid);
+  if(i < 0) return;
+  var j = i + dir;
+  if(j < 0 || j >= lay.length) return;
+  // Animate
+  var slots = document.querySelectorAll('.wg-slot');
+  if(slots[i]) { slots[i].classList.add('wg-moving'); setTimeout(function(){ slots[i].classList.remove('wg-moving'); }, 200); }
+  lay.splice(i, 1); lay.splice(j, 0, wid);
+  wgSaveLayout(lay);
+  renderWidgets();
+}
+
 function wgRemove(wid) {
-  var layout = wgLoadLayout();
-  var idx = layout.indexOf(wid);
-  if(idx > -1) layout.splice(idx, 1);
-  wgSaveLayout(layout);
+  var lay = wgLoadLayout();
+  var i = lay.indexOf(wid);
+  if(i > -1) lay.splice(i, 1);
+  wgSaveLayout(lay);
   renderWidgets();
   var def = WG_DEFS[wid];
-  toast((def?def.icon+' "'+def.label+'"':'উইজেট')+' সরানো হয়েছে।');
+  toast((def ? def.icon+' "'+def.label+'"' : 'উইজেট')+' বাদ দেওয়া হয়েছে।');
 }
 
 function wgAdd(wid) {
-  var layout = wgLoadLayout();
-  if(layout.indexOf(wid) > -1) return;
-  layout.push(wid);
-  wgSaveLayout(layout);
-  document.getElementById('wgPickerModal').remove();
+  var lay = wgLoadLayout();
+  if(lay.indexOf(wid) > -1) return;
+  lay.push(wid);
+  wgSaveLayout(lay);
+  var m = document.getElementById('wgPickerModal');
+  if(m) m.remove();
   renderWidgets();
   var def = WG_DEFS[wid];
-  toast((def?def.icon+' "'+def.label+'"':'উইজেট')+' যোগ করা হয়েছে ✅');
+  toast((def ? def.icon+' "'+def.label+'"' : 'উইজেট')+' যোগ করা হয়েছে ✅');
 }
 
 function dashEditMode(on) {
@@ -9534,13 +9364,12 @@ function dashEditMode(on) {
   if(tb) { if(on) tb.classList.add('active'); else tb.classList.remove('active'); }
   if(eb) eb.style.display = on ? 'none' : 'flex';
   renderWidgets();
-  if(!on) { toast('ড্যাশবোর্ড লেআউট সংরক্ষিত ✅'); }
+  if(!on) toast('ড্যাশবোর্ড সংরক্ষিত ✅');
 }
 
 function resetWidgetLayout() {
-  if(!confirm('ডিফল্ট লেআউটে ফিরে যাবেন? সব সাইজ ও সাজানো ডিফল্ট হয়ে যাবে।')) return;
+  if(!confirm('ডিফল্ট লেআউটে ফিরে যাবেন?')) return;
   localStorage.removeItem('mms_wg');
-  wgResetHeights();
   renderWidgets();
   toast('ডিফল্ট লেআউট পুনরুদ্ধার হয়েছে।');
 }
