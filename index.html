@@ -7,6 +7,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+Bengali:wght@400;600;700&family=Noto+Sans+Bengali:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <!-- Firebase Compat SDK -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.2/Sortable.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 <style>
@@ -365,75 +366,63 @@
   #dashWidgetContainer { display:flex; flex-direction:column; gap:14px; }
   #dashEditBtn { display:flex; }
 
-  /* Each widget slot */
   .wg-slot { position:relative; border-radius:12px; }
 
-  /* Normal mode — no resize */
-  .wg-slot > .card {
-    overflow:hidden;
-    min-width:200px;
-    min-height:60px;
-  }
+  /* Normal: no resize */
+  .wg-slot > .card { overflow:hidden; min-width:200px; min-height:60px; }
 
-  /* ✅ Resize mode — CSS resize handle appears at edges/corners */
+  /* Resize mode: CSS resize handle */
   .wg-resize-mode .wg-slot > .card {
-    overflow:auto;
-    resize:both;
+    overflow:auto; resize:both;
     border:2px dashed var(--primary) !important;
     box-shadow:0 0 0 3px var(--primary-ultra-light);
-    cursor:default;
   }
 
-  /* Control bar — hidden normally, shown in edit mode */
+  /* Edit mode: control bar visible */
   .wg-ctrl { display:none; }
   .dash-edit-mode .wg-ctrl {
-    display:flex; align-items:center; gap:6px;
-    position:absolute; top:-14px; left:0; right:0; z-index:30;
+    display:flex; align-items:center; gap:8px;
     background:linear-gradient(90deg, var(--primary), var(--primary-light));
     border-radius:10px 10px 0 0;
-    padding:5px 8px;
+    padding:6px 10px;
   }
   .dash-edit-mode .wg-slot > .card {
     border:2px solid var(--primary-light) !important;
     border-radius:0 0 12px 12px !important;
-    margin-top:14px;
   }
-  /* resize mode + edit mode combined */
   .dash-edit-mode.wg-resize-mode .wg-slot > .card {
-    margin-top:14px;
+    border:2px dashed var(--primary) !important;
+    border-radius:0 0 12px 12px !important;
   }
 
-  /* Arrow move buttons */
-  .wg-btn {
-    border:none; border-radius:6px; cursor:pointer;
-    font-size:15px; line-height:1;
-    padding:5px 9px;
-    font-family:inherit; font-weight:700;
-    transition:background .1s, transform .1s;
-    flex-shrink:0;
+  /* Drag handle */
+  .wg-drag-handle {
+    color:#fff; font-size:18px; cursor:grab;
+    user-select:none; padding:2px 6px;
+    background:rgba(255,255,255,.2); border-radius:5px;
+    letter-spacing:2px; line-height:1;
   }
-  .wg-btn:active { transform:scale(.92); }
-  .wg-btn-move { background:rgba(255,255,255,.22); color:#fff; }
-  .wg-btn-move:disabled { opacity:.25; cursor:default; }
-  .wg-btn-move:not(:disabled):active { background:rgba(255,255,255,.45); }
+  .wg-drag-handle:active { cursor:grabbing; background:rgba(255,255,255,.4); }
 
-  /* Widget name */
   .wg-name {
     flex:1; color:#fff; font-size:11px; font-weight:700;
     white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
-    text-align:center; opacity:.95;
   }
 
-  /* Remove button */
-  .wg-btn-del {
-    background:rgba(220,50,50,.5); color:#fff;
-    border:1px solid rgba(255,255,255,.3);
-    padding:4px 10px; font-size:12px; white-space:nowrap;
-  }
-  .wg-btn-del:active { background:rgba(200,30,30,.9); }
+  /* Sortable states */
+  .wg-ghost { opacity:.3; background:var(--primary-ultra-light); border-radius:12px; }
+  .wg-chosen { box-shadow:0 8px 30px rgba(0,0,0,.2); }
+  .wg-dragging { opacity:.85; transform:rotate(1deg); box-shadow:0 12px 40px rgba(0,0,0,.25); }
 
-  /* Moving animation */
-  .wg-slot.wg-moving { transform:scale(.98); box-shadow:0 6px 24px rgba(0,0,0,.18); z-index:10; }
+  /* Buttons */
+  .wg-btn {
+    border:none; border-radius:6px; cursor:pointer;
+    font-size:12px; padding:4px 10px;
+    font-family:inherit; font-weight:700;
+    flex-shrink:0; white-space:nowrap;
+  }
+  .wg-btn-del { background:rgba(220,50,50,.45); color:#fff; border:1px solid rgba(255,255,255,.3); }
+  .wg-btn-del:active { background:rgba(200,20,20,.9); }
 
   /* Widget picker */
   .wg-picker-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(130px,1fr)); gap:10px; margin-top:12px; }
@@ -442,10 +431,7 @@
     text-align:center; cursor:pointer; transition:.15s; background:#fff;
   }
   .wg-picker-item:active:not(.wg-used),
-  .wg-picker-item:hover:not(.wg-used) {
-    border-color:var(--primary); background:var(--primary-ultra-light);
-    transform:translateY(-2px); box-shadow:var(--shadow);
-  }
+  .wg-picker-item:hover:not(.wg-used) { border-color:var(--primary); background:var(--primary-ultra-light); transform:translateY(-2px); }
   .wg-picker-item.wg-used { opacity:.45; cursor:default; border-style:dashed; }
   .wg-picker-icon { font-size:26px; margin-bottom:5px; }
   .wg-picker-label { font-size:11px; font-weight:700; color:var(--text); line-height:1.3; }
@@ -9279,80 +9265,60 @@ function wgSaveLayout(layout) {
 }
 
 // ---- Render all widgets ----
+var _sortable = null;
+
 function renderWidgets() {
   var container = document.getElementById('dashWidgetContainer');
   if(!container) return;
+
+  // Destroy previous sortable
+  if(_sortable) { try { _sortable.destroy(); } catch(e){} _sortable = null; }
+
   container.innerHTML = '';
   if(_dashEditMode) container.classList.add('dash-edit-mode');
   else container.classList.remove('dash-edit-mode');
 
   var layout = wgLoadLayout();
-  var total = layout.length;
 
-  layout.forEach(function(wid, idx) {
+  layout.forEach(function(wid) {
     var def = WG_DEFS[wid]; if(!def) return;
     var slot = document.createElement('div');
     slot.className = 'wg-slot';
     slot.dataset.wid = wid;
 
-    // Control bar (shown only in edit mode via CSS)
+    // Drag handle bar (edit mode only)
     var ctrl = document.createElement('div');
     ctrl.className = 'wg-ctrl';
-    // Up button
-    var btnUp = document.createElement('button');
-    btnUp.className = 'wg-btn wg-btn-move';
-    btnUp.innerHTML = '▲';
-    btnUp.title = 'উপরে সরান';
-    if(idx === 0) btnUp.disabled = true;
-    btnUp.onclick = function(e){ e.stopPropagation(); wgMove(wid, -1); };
+    ctrl.innerHTML =
+      '<span class="wg-drag-handle" title="ধরে টানুন">⠿⠿⠿</span>'
+      +'<span class="wg-name">'+def.icon+' '+def.label+'</span>'
+      +'<button class="wg-btn wg-btn-del" onclick="wgRemove(\''+wid+'\')">✕ বাদ</button>';
 
-    // Down button
-    var btnDn = document.createElement('button');
-    btnDn.className = 'wg-btn wg-btn-move';
-    btnDn.innerHTML = '▼';
-    btnDn.title = 'নিচে সরান';
-    if(idx === total-1) btnDn.disabled = true;
-    btnDn.onclick = function(e){ e.stopPropagation(); wgMove(wid, 1); };
-
-    // Name label
-    var lbl = document.createElement('span');
-    lbl.className = 'wg-name';
-    lbl.textContent = def.icon + ' ' + def.label;
-
-    // Remove button
-    var btnDel = document.createElement('button');
-    btnDel.className = 'wg-btn wg-btn-del';
-    btnDel.innerHTML = '✕ বাদ';
-    btnDel.onclick = function(e){ e.stopPropagation(); wgRemove(wid); };
-
-    ctrl.appendChild(btnUp);
-    ctrl.appendChild(btnDn);
-    ctrl.appendChild(lbl);
-    ctrl.appendChild(btnDel);
     slot.appendChild(ctrl);
     slot.insertAdjacentHTML('beforeend', def.render());
     container.appendChild(slot);
   });
 
   renderDashboardData();
-  // Restore saved sizes
   setTimeout(wgRestoreSizes, 50);
-  // Re-apply resize mode class if active
   if(_wgResizeMode) container.classList.add('wg-resize-mode');
-}
 
-function wgMove(wid, dir) {
-  var lay = wgLoadLayout();
-  var i = lay.indexOf(wid);
-  if(i < 0) return;
-  var j = i + dir;
-  if(j < 0 || j >= lay.length) return;
-  // Animate
-  var slots = document.querySelectorAll('.wg-slot');
-  if(slots[i]) { slots[i].classList.add('wg-moving'); setTimeout(function(){ slots[i].classList.remove('wg-moving'); }, 200); }
-  lay.splice(i, 1); lay.splice(j, 0, wid);
-  wgSaveLayout(lay);
-  renderWidgets();
+  // Init SortableJS drag (edit mode only)
+  if(_dashEditMode && window.Sortable) {
+    _sortable = new Sortable(container, {
+      animation: 180,
+      handle: '.wg-drag-handle',
+      ghostClass: 'wg-ghost',
+      chosenClass: 'wg-chosen',
+      dragClass: 'wg-dragging',
+      onEnd: function(evt) {
+        var lay = wgLoadLayout();
+        var moved = lay.splice(evt.oldIndex, 1)[0];
+        lay.splice(evt.newIndex, 0, moved);
+        wgSaveLayout(lay);
+      }
+    });
+  }
 }
 
 function wgRemove(wid) {
