@@ -358,6 +358,97 @@
   .cls-chip .chip-del { cursor:pointer; color:var(--danger); font-weight:900; font-size:13px; line-height:1; margin-left:2px; }
   .cls-chip .chip-del:hover { color:#900; }
   .cls-mismatch-warn { background:#fff3cd; border:1.5px solid #ffc107; border-radius:10px; padding:12px 14px; margin-top:8px; font-size:12px; }
+
+  /* ===== WIDGET DRAG SYSTEM ===== */
+  #dashWidgetToolbar { display:none; }
+  #dashWidgetToolbar.active { display:flex !important; }
+
+  /* flat list layout — all widgets stacked, full width on mobile, multi-col on desktop */
+  #dashWidgetContainer { display:flex; flex-direction:column; gap:14px; }
+
+  .wg-slot {
+    position:relative; transition:opacity .2s, transform .2s, box-shadow .2s;
+    border-radius:12px;
+  }
+  .wg-slot.wg-dragging {
+    opacity:.35; transform:scale(.97) rotate(1deg);
+    box-shadow:0 8px 32px rgba(0,0,0,.18);
+    z-index:100;
+  }
+  .wg-slot.wg-drag-over {
+    outline:3px dashed var(--primary);
+    outline-offset:3px;
+    background:var(--primary-ultra-light);
+    border-radius:12px;
+  }
+  /* edit handle bar */
+  .wg-handle-bar { display:none; }
+  .dash-edit-mode .wg-slot .wg-handle-bar {
+    display:flex; align-items:center; justify-content:space-between;
+    position:absolute; top:0; left:0; right:0; z-index:20;
+    background:linear-gradient(90deg,var(--primary) 0%,var(--primary-light) 100%);
+    border-radius:12px 12px 0 0; padding:5px 10px; gap:6px;
+    touch-action:none; /* needed for touch drag */
+  }
+  .dash-edit-mode .wg-slot > .card,
+  .dash-edit-mode .wg-slot > div > .card {
+    padding-top:34px !important;
+    border:2px solid var(--primary-light) !important;
+  }
+  .wg-drag-handle {
+    display:flex; align-items:center; gap:4px;
+    color:#fff; font-size:20px; cursor:grab;
+    user-select:none; touch-action:none;
+    padding:2px 4px; border-radius:4px;
+    background:rgba(255,255,255,.15);
+    min-width:36px; justify-content:center;
+  }
+  .wg-drag-handle:active { cursor:grabbing; background:rgba(255,255,255,.3); }
+  .wg-title-lbl { color:#fff; font-size:11px; font-weight:700; flex:1; text-align:center; opacity:.9; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .wg-remove-btn {
+    background:rgba(255,80,80,.25); border:1px solid rgba(255,255,255,.4);
+    color:#fff; border-radius:6px; padding:3px 10px; font-size:12px;
+    cursor:pointer; font-family:inherit; white-space:nowrap; font-weight:700;
+    min-width:60px; text-align:center;
+  }
+  .wg-remove-btn:active { background:rgba(220,50,50,.8); }
+  /* ghost clone during touch drag */
+  #wgTouchGhost {
+    position:fixed; pointer-events:none; z-index:9999;
+    opacity:.75; border-radius:12px; box-shadow:0 12px 40px rgba(0,0,0,.3);
+    border:3px solid var(--primary);
+    transform:scale(1.03) rotate(1.5deg);
+    transition:none;
+    background:#fff;
+    overflow:hidden;
+  }
+  /* edit mode shimmer overlay on card content */
+  .dash-edit-mode .wg-slot::after {
+    content:'';
+    position:absolute; inset:0; top:34px;
+    border-radius:0 0 12px 12px;
+    background:transparent;
+    pointer-events:all; /* block clicks on content in edit mode */
+    z-index:10;
+  }
+  /* widget picker */
+  .wg-picker-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(130px,1fr)); gap:10px; margin-top:12px; }
+  .wg-picker-item {
+    border:2px solid var(--border); border-radius:10px; padding:12px 8px;
+    text-align:center; cursor:pointer; transition:.15s; background:#fff;
+  }
+  .wg-picker-item:active:not(.wg-used),
+  .wg-picker-item:hover:not(.wg-used) {
+    border-color:var(--primary); background:var(--primary-ultra-light);
+    transform:translateY(-2px); box-shadow:var(--shadow);
+  }
+  .wg-picker-item.wg-used { opacity:.45; cursor:default; border-style:dashed; }
+  .wg-picker-icon { font-size:26px; margin-bottom:5px; }
+  .wg-picker-label { font-size:11px; font-weight:700; color:var(--text); line-height:1.3; }
+  .wg-picker-used-tag { font-size:10px; color:#888; margin-top:3px; }
+  /* edit mode toggle button shown always */
+  #dashEditBtn { display:flex; }
+
 </style>
 </head>
 <body>
@@ -474,127 +565,32 @@
           <div id="universalSearchResult" style="margin-top:10px;"></div>
         </div>
       </div>
-      <div class="stats-grid" id="statsGrid"></div>
-
-      <!-- Dashboard Charts Row -->
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:16px;" id="dashChartsRow">
-        <!-- Attendance Visual -->
-        <div class="card" style="min-height:220px;">
-          <div class="card-header"><span class="card-title">📊 আজকের উপস্থিতি</span></div>
-          <div class="card-body" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:10px 14px;">
-            <!-- Ring chart -->
-            <div style="position:relative;width:120px;height:120px;">
-              <svg viewBox="0 0 36 36" style="width:120px;height:120px;transform:rotate(-90deg);">
-                <circle cx="18" cy="18" r="15.9" fill="none" stroke="#f0f0f0" stroke-width="4"/>
-                <circle id="attDonutPresent" cx="18" cy="18" r="15.9" fill="none" stroke="var(--primary)" stroke-width="4" stroke-dasharray="0 100" stroke-linecap="round"/>
-                <circle id="attDonutAbsent" cx="18" cy="18" r="15.9" fill="none" stroke="#ef4444" stroke-width="4" stroke-dasharray="0 100" stroke-dashoffset="0" stroke-linecap="round"/>
-              </svg>
-              <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;">
-                <div id="attDonutPct" style="font-size:22px;font-weight:800;color:var(--primary);line-height:1;">-</div>
-                <div style="font-size:9px;color:var(--text-muted);">উপস্থিতি</div>
-              </div>
-            </div>
-            <!-- Legend -->
-            <div style="display:flex;gap:12px;font-size:12px;margin-top:4px;">
-              <div style="display:flex;align-items:center;gap:5px;">
-                <span style="width:10px;height:10px;background:var(--primary);border-radius:50%;display:inline-block;"></span>
-                <span id="attLegPresent" style="font-weight:600;">উপস্থিত: -</span>
-              </div>
-              <div style="display:flex;align-items:center;gap:5px;">
-                <span style="width:10px;height:10px;background:#ef4444;border-radius:50%;display:inline-block;"></span>
-                <span id="attLegAbsent" style="font-weight:600;">অনুপস্থিত: -</span>
-              </div>
-            </div>
-            <!-- Today's class-wise mini bar -->
-            <div id="attClassMini" style="width:100%;margin-top:6px;font-size:10px;"></div>
-          </div>
-        </div>
-        <!-- Fee Bar Chart -->
-        <div class="card" style="min-height:220px;">
-          <div class="card-header"><span class="card-title">💰 ফি আদায় (শেষ ৬ মাস)</span></div>
-          <div class="card-body" style="display:flex;align-items:flex-end;gap:6px;height:160px;padding-bottom:24px;position:relative;">
-            <div id="feeBarChart" style="display:flex;align-items:flex-end;gap:6px;width:100%;height:100%;"></div>
-          </div>
-        </div>
-        <!-- Class wise students pie -->
-        <div class="card" style="min-height:220px;">
-          <div class="card-header"><span class="card-title">👥 শ্রেণিভিত্তিক শিক্ষার্থী</span></div>
-          <div class="card-body" id="classBarChart" style="display:flex;flex-direction:column;gap:6px;overflow-y:auto;max-height:170px;"></div>
+      <!-- Stats Grid + Edit Button -->
+      <div style="margin-bottom:14px;">
+        <div class="stats-grid" id="statsGrid" style="margin-bottom:8px;"></div>
+        <div style="display:flex;justify-content:flex-end;">
+          <button id="dashEditBtn" onclick="dashEditMode(true)"
+            style="background:var(--primary-ultra-light);border:1.5px solid var(--primary);color:var(--primary);border-radius:8px;padding:7px 16px;font-size:13px;cursor:pointer;font-family:inherit;font-weight:700;display:flex;align-items:center;gap:6px;">
+            ✏️ ড্যাশবোর্ড সাজান
+          </button>
         </div>
       </div>
 
-      <!-- Birthday + Pending Leave row -->
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;" id="dashAlertRow">
-        <div class="card" id="dashBirthdayCard">
-          <div class="card-header"><span class="card-title">🎂 আজকের জন্মদিন</span></div>
-          <div class="card-body" id="dashBirthdayList" style="font-size:13px;">কোনো জন্মদিন নেই আজ।</div>
+      <!-- ===== WIDGET TOOLBAR ===== -->
+      <div id="dashWidgetToolbar" style="background:linear-gradient(135deg,var(--primary),var(--primary-light));border-radius:10px;padding:10px 16px;margin-bottom:14px;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;">
+        <div style="color:#fff;font-weight:700;font-size:13px;display:flex;align-items:center;gap:8px;">
+          ✏️ ড্যাশবোর্ড সম্পাদনা
+          <span style="font-size:11px;font-weight:400;opacity:.8;">⠿ টেনে সাজান &nbsp;·&nbsp; + যোগ করুন &nbsp;·&nbsp; ✕ সরান</span>
         </div>
-        <div class="card" id="dashPendingLeaveCard" style="cursor:pointer;" onclick="showPage('leave')">
-          <div class="card-header"><span class="card-title">⏳ অনুমোদন বাকি</span></div>
-          <div class="card-body" id="dashPendingLeaveList" style="font-size:13px;">কোনো আবেদন নেই।</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button onclick="resetWidgetLayout()" style="background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.35);border-radius:6px;padding:5px 11px;font-size:12px;cursor:pointer;font-family:inherit;">↺ ডিফল্ট</button>
+          <button onclick="openWidgetPicker()" style="background:rgba(255,255,255,.2);color:#fff;border:1px solid rgba(255,255,255,.4);border-radius:6px;padding:5px 12px;font-size:12px;cursor:pointer;font-family:inherit;">+ উইজেট যোগ করুন</button>
+          <button onclick="dashEditMode(false)" style="background:#fff;color:var(--primary);border:none;border-radius:6px;padding:5px 14px;font-size:12px;cursor:pointer;font-weight:700;font-family:inherit;">✅ সম্পন্ন</button>
         </div>
       </div>
 
-      <div class="dashboard-grid">
-        <div class="card">
-          <div class="card-header"><span class="card-title">⚡ দ্রুত কাজ</span></div>
-          <div class="card-body">
-            <div class="quick-actions">
-              <div class="qa-btn" onclick="showPage('students');openModal('addStudentModal')"><div class="icon">👨‍🎓</div><div class="label">শিক্ষার্থী ভর্তি</div></div>
-              <div class="qa-btn" onclick="showPage('attendance')"><div class="icon">✅</div><div class="label">উপস্থিতি নিন</div></div>
-              <div class="qa-btn" onclick="openQuickFeeModal()" style="background:linear-gradient(135deg,#c9a227,#e8b84b);color:#fff;"><div class="icon">💳</div><div class="label">ফী আদায়</div></div>
-              <div class="qa-btn" onclick="showPage('finance');setTimeout(()=>openModal('addFinanceModal'),100)"><div class="icon">💰</div><div class="label">লেনদেন যোগ</div></div>
-              <div class="qa-btn" onclick="showPage('notice');openModal('addNoticeModal')"><div class="icon">📢</div><div class="label">বিজ্ঞপ্তি দিন</div></div>
-              <div class="qa-btn" onclick="showPage('results');openModal('addResultModal')"><div class="icon">📋</div><div class="label">ফলাফল দিন</div></div>
-              <div class="qa-btn" onclick="showPage('exampaper')"><div class="icon">📄</div><div class="label">প্রশ্নপত্র</div></div>
-              <div class="qa-btn" onclick="showPage('leave')"><div class="icon">📝</div><div class="label">ছুটির আবেদন</div></div>
-              <div class="qa-btn" onclick="showPage('idcard')"><div class="icon">🪪</div><div class="label">আইডি কার্ড</div></div>
-            </div>
-          </div>
-        </div>
-        <div class="card">
-          <div class="card-header"><span class="card-title">📢 সাম্প্রতিক বিজ্ঞপ্তি</span></div>
-          <div class="card-body" id="recentNotices" style="max-height:240px;overflow-y:auto;"></div>
-        </div>
-        <div class="card">
-          <div class="card-header"><span class="card-title">📈 আজকের সারসংক্ষেপ</span></div>
-          <div class="card-body" id="todaySummary"></div>
-        </div>
-        <div class="card">
-          <div class="card-header">
-            <span class="card-title">🏆 এই মাসের সেরা শিক্ষার্থী</span>
-            <span style="font-size:11px;color:var(--text-muted);">উপস্থিতি + ফলাফল</span>
-          </div>
-          <div class="card-body" id="topStudents"></div>
-        </div>
-        <div class="card">
-          <div class="card-header">
-            <span class="card-title">⭐ এই মাসের সেরা শিক্ষক</span>
-            <span style="font-size:11px;color:var(--text-muted);">উপস্থিতি + হাজিরা</span>
-          </div>
-          <div class="card-body" id="topTeachers"></div>
-        </div>
-        <!-- অনলাইন পেমেন্ট অনুমোদন -->
-        <div class="card" style="grid-column:1/-1;">
-          <div class="card-header">
-            <span class="card-title">💸 অনলাইন পেমেন্ট অনুমোদন</span>
-            <span id="pendingPayBadge" style="background:var(--danger);color:#fff;border-radius:10px;padding:2px 10px;font-size:12px;font-weight:700;display:none;">০ টি অপেক্ষায়</span>
-          </div>
-          <div class="card-body" id="pendingPaymentsList">
-            <p style="color:var(--text-muted);text-align:center;font-size:13px;">কোনো পেমেন্ট অনুমোদনের অপেক্ষায় নেই।</p>
-          </div>
-        </div>
-        <!-- আজকের অনুপস্থিত তালিকা -->
-        <div class="card" style="grid-column:1/-1;">
-          <div class="card-header">
-            <span class="card-title">❌ আজকের অনুপস্থিত শিক্ষার্থী</span>
-            <span id="todayAbsentBadge" style="background:var(--danger);color:#fff;border-radius:10px;padding:2px 10px;font-size:12px;font-weight:700;display:none;"></span>
-          </div>
-          <div class="card-body" id="todayAbsentList">
-            <p style="color:var(--text-muted);text-align:center;font-size:13px;">হাজিরা নেওয়ার পর এখানে দেখা যাবে।</p>
-          </div>
-        </div>
-      </div>
+      <!-- ===== WIDGET CONTAINER ===== -->
+      <div id="dashWidgetContainer"></div>
     </div>
 
     <!-- STUDENTS -->
@@ -2634,21 +2630,7 @@ function renderDashboard() {
       +'</div></div>';
   })()
 
-  // ---- CHARTS ----
-  // Attendance Donut
-  var circumference = 100;
-  var presentDash = attTotal>0 ? (presentToday/attTotal*circumference).toFixed(1) : 0;
-  var absentDash  = attTotal>0 ? (absentToday/attTotal*circumference).toFixed(1) : 0;
-  var el1=document.getElementById('attDonutPresent');
-  var el2=document.getElementById('attDonutAbsent');
-  var el3=document.getElementById('attDonutPct');
-  var el4=document.getElementById('attLegPresent');
-  var el5=document.getElementById('attLegAbsent');
-  if(el1) el1.setAttribute('stroke-dasharray', presentDash+' '+(circumference-presentDash));
-  if(el2) { el2.setAttribute('stroke-dasharray', absentDash+' '+(circumference-absentDash)); el2.setAttribute('stroke-dashoffset', -parseFloat(presentDash)+''); }
-  if(el3) el3.textContent = attTotal>0 ? attPct+'%' : '-';
-  if(el4) el4.textContent = 'উপস্থিত: '+presentToday;
-  if(el5) el5.textContent = 'অনুপস্থিত: '+absentToday;
+  // Charts handled by renderDashboardData()
   // Class-wise mini bar in attendance chart
   var attClassMini = document.getElementById('attClassMini');
   if(attClassMini && attTotal > 0) {
@@ -2766,15 +2748,8 @@ function renderDashboard() {
         <div style="font-size:20px;font-weight:700;color:var(--info);">${todayAtt.length}</div><div class="text-muted">উপস্থিতি এন্ট্রি</div>
       </div>
     </div>`;
-  // Top students — renderTopStudents handles this
-
-  // অনলাইন পেমেন্ট pending
-  renderPendingPayments();
-  // আজকের অনুপস্থিত
-  renderTodayAbsent();
-  // সেরা শিক্ষার্থী ও শিক্ষক
-  renderTopStudents();
-  renderTopTeachers();
+  // ---- Widget System: render all widgets ----
+  renderWidgets();
 }
 
 function renderTodayAbsent() {
@@ -9169,6 +9144,394 @@ function addStudentRankingToProfile(sid) {
 
 
 
+
+// ╔══════════════════════════════════════════════════════════════════╗
+// ║              DASHBOARD WIDGET DRAG SYSTEM                       ║
+// ╚══════════════════════════════════════════════════════════════════╝
+
+var _dashEditMode = false;
+var _wgDragSrc = null; // slot element being dragged
+
+// Widget definitions
+var WG_DEFS = {
+  att_donut: { label:'আজকের উপস্থিতি', icon:'📊', render: function(){ return (
+    '<div class="card" style="min-height:210px;">'
+    +'<div class="card-header"><span class="card-title">📊 আজকের উপস্থিতি</span></div>'
+    +'<div class="card-body" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:10px 14px;">'
+      +'<div style="position:relative;width:110px;height:110px;">'
+        +'<svg viewBox="0 0 36 36" style="width:110px;height:110px;transform:rotate(-90deg);">'
+          +'<circle cx="18" cy="18" r="15.9" fill="none" stroke="#f0f0f0" stroke-width="4"/>'
+          +'<circle id="attDonutPresent" cx="18" cy="18" r="15.9" fill="none" stroke="var(--primary)" stroke-width="4" stroke-dasharray="0 100" stroke-linecap="round"/>'
+          +'<circle id="attDonutAbsent" cx="18" cy="18" r="15.9" fill="none" stroke="#ef4444" stroke-width="4" stroke-dasharray="0 100" stroke-dashoffset="0" stroke-linecap="round"/>'
+        +'</svg>'
+        +'<div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;">'
+          +'<div id="attDonutPct" style="font-size:20px;font-weight:800;color:var(--primary);line-height:1;">-</div>'
+          +'<div style="font-size:9px;color:var(--text-muted);">উপস্থিতি</div>'
+        +'</div>'
+      +'</div>'
+      +'<div style="display:flex;gap:12px;font-size:12px;">'
+        +'<span style="display:flex;align-items:center;gap:4px;"><span style="width:9px;height:9px;background:var(--primary);border-radius:50%;display:inline-block;"></span><span id="attLegPresent">উপস্থিত: -</span></span>'
+        +'<span style="display:flex;align-items:center;gap:4px;"><span style="width:9px;height:9px;background:#ef4444;border-radius:50%;display:inline-block;"></span><span id="attLegAbsent">অনুপস্থিত: -</span></span>'
+      +'</div>'
+      +'<div id="attClassMini" style="width:100%;margin-top:4px;font-size:10px;"></div>'
+    +'</div></div>'); }
+  },
+  fee_bar: { label:'ফি আদায় (৬ মাস)', icon:'💰', render: function(){ return (
+    '<div class="card" style="min-height:210px;">'
+    +'<div class="card-header"><span class="card-title">💰 ফি আদায় (শেষ ৬ মাস)</span></div>'
+    +'<div class="card-body" style="display:flex;align-items:flex-end;gap:6px;height:155px;padding-bottom:22px;">'
+      +'<div id="feeBarChart" style="display:flex;align-items:flex-end;gap:6px;width:100%;height:100%;"></div>'
+    +'</div></div>'); }
+  },
+  class_bar: { label:'শ্রেণিভিত্তিক শিক্ষার্থী', icon:'👥', render: function(){ return (
+    '<div class="card" style="min-height:210px;">'
+    +'<div class="card-header"><span class="card-title">👥 শ্রেণিভিত্তিক শিক্ষার্থী</span></div>'
+    +'<div class="card-body" id="classBarChart" style="display:flex;flex-direction:column;gap:6px;overflow-y:auto;max-height:165px;"></div>'
+    +'</div>'); }
+  },
+  birthday: { label:'আজকের জন্মদিন', icon:'🎂', render: function(){ return (
+    '<div class="card" id="dashBirthdayCard">'
+    +'<div class="card-header"><span class="card-title">🎂 আজকের জন্মদিন</span></div>'
+    +'<div class="card-body" id="dashBirthdayList" style="font-size:13px;min-height:50px;"></div>'
+    +'</div>'); }
+  },
+  pending_leave: { label:'অনুমোদন বাকি', icon:'⏳', render: function(){ return (
+    '<div class="card" id="dashPendingLeaveCard" style="cursor:pointer;" onclick="showPage(\'leave\')">'
+    +'<div class="card-header"><span class="card-title">⏳ অনুমোদন বাকি</span></div>'
+    +'<div class="card-body" id="dashPendingLeaveList" style="font-size:13px;min-height:50px;"></div>'
+    +'</div>'); }
+  },
+  quick_actions: { label:'দ্রুত কাজ', icon:'⚡', render: function(){ return (
+    '<div class="card">'
+    +'<div class="card-header"><span class="card-title">⚡ দ্রুত কাজ</span></div>'
+    +'<div class="card-body"><div class="quick-actions">'
+      +'<div class="qa-btn" onclick="showPage(\'students\');openModal(\'addStudentModal\')"><div class="icon">👨‍🎓</div><div class="label">শিক্ষার্থী ভর্তি</div></div>'
+      +'<div class="qa-btn" onclick="showPage(\'attendance\')"><div class="icon">✅</div><div class="label">উপস্থিতি নিন</div></div>'
+      +'<div class="qa-btn" onclick="openQuickFeeModal()" style="background:linear-gradient(135deg,#c9a227,#e8b84b);color:#fff;"><div class="icon">💳</div><div class="label">ফী আদায়</div></div>'
+      +'<div class="qa-btn" onclick="showPage(\'finance\');setTimeout(()=>openModal(\'addFinanceModal\'),100)"><div class="icon">💰</div><div class="label">লেনদেন যোগ</div></div>'
+      +'<div class="qa-btn" onclick="showPage(\'notice\');openModal(\'addNoticeModal\')"><div class="icon">📢</div><div class="label">বিজ্ঞপ্তি দিন</div></div>'
+      +'<div class="qa-btn" onclick="showPage(\'results\');openModal(\'addResultModal\')"><div class="icon">📋</div><div class="label">ফলাফল দিন</div></div>'
+      +'<div class="qa-btn" onclick="showPage(\'exampaper\')"><div class="icon">📄</div><div class="label">প্রশ্নপত্র</div></div>'
+      +'<div class="qa-btn" onclick="showPage(\'leave\')"><div class="icon">📝</div><div class="label">ছুটির আবেদন</div></div>'
+      +'<div class="qa-btn" onclick="showPage(\'idcard\')"><div class="icon">🪪</div><div class="label">আইডি কার্ড</div></div>'
+    +'</div></div></div>'); }
+  },
+  notices: { label:'সাম্প্রতিক বিজ্ঞপ্তি', icon:'📢', render: function(){ return (
+    '<div class="card">'
+    +'<div class="card-header"><span class="card-title">📢 সাম্প্রতিক বিজ্ঞপ্তি</span></div>'
+    +'<div class="card-body" id="recentNotices" style="max-height:230px;overflow-y:auto;"></div>'
+    +'</div>'); }
+  },
+  today_summary: { label:'আজকের সারসংক্ষেপ', icon:'📈', render: function(){ return (
+    '<div class="card">'
+    +'<div class="card-header"><span class="card-title">📈 আজকের সারসংক্ষেপ</span></div>'
+    +'<div class="card-body" id="todaySummary"></div>'
+    +'</div>'); }
+  },
+  top_students: { label:'এই মাসের সেরা শিক্ষার্থী', icon:'🏆', render: function(){ return (
+    '<div class="card">'
+    +'<div class="card-header"><span class="card-title">🏆 এই মাসের সেরা শিক্ষার্থী</span><span style="font-size:11px;color:var(--text-muted);">উপস্থিতি + ফলাফল</span></div>'
+    +'<div class="card-body" id="topStudents"></div>'
+    +'</div>'); }
+  },
+  top_teachers: { label:'এই মাসের সেরা শিক্ষক', icon:'⭐', render: function(){ return (
+    '<div class="card">'
+    +'<div class="card-header"><span class="card-title">⭐ এই মাসের সেরা শিক্ষক</span><span style="font-size:11px;color:var(--text-muted);">উপস্থিতি + হাজিরা</span></div>'
+    +'<div class="card-body" id="topTeachers"></div>'
+    +'</div>'); }
+  },
+  pending_payments: { label:'অনলাইন পেমেন্ট অনুমোদন', icon:'💸', render: function(){ return (
+    '<div class="card">'
+    +'<div class="card-header"><span class="card-title">💸 অনলাইন পেমেন্ট অনুমোদন</span>'
+      +'<span id="pendingPayBadge" style="background:var(--danger);color:#fff;border-radius:10px;padding:2px 10px;font-size:12px;font-weight:700;display:none;">০ টি অপেক্ষায়</span>'
+    +'</div>'
+    +'<div class="card-body" id="pendingPaymentsList"><p style="color:var(--text-muted);text-align:center;font-size:13px;">কোনো পেমেন্ট অনুমোদনের অপেক্ষায় নেই।</p></div>'
+    +'</div>'); }
+  },
+  absent_list: { label:'আজকের অনুপস্থিত তালিকা', icon:'❌', render: function(){ return (
+    '<div class="card">'
+    +'<div class="card-header"><span class="card-title">❌ আজকের অনুপস্থিত শিক্ষার্থী</span>'
+      +'<span id="todayAbsentBadge" style="background:var(--danger);color:#fff;border-radius:10px;padding:2px 10px;font-size:12px;font-weight:700;display:none;"></span>'
+    +'</div>'
+    +'<div class="card-body" id="todayAbsentList"><p style="color:var(--text-muted);text-align:center;font-size:13px;">হাজিরা নেওয়ার পর এখানে দেখা যাবে।</p></div>'
+    +'</div>'); }
+  },
+};
+
+// Default layout: flat ordered list of widget ids
+var WG_DEFAULT = [
+  'att_donut','fee_bar','class_bar',
+  'birthday','pending_leave','today_summary',
+  'quick_actions','notices',
+  'top_students','top_teachers',
+  'pending_payments',
+  'absent_list'
+];
+
+function wgLoadLayout() {
+  try { var s=localStorage.getItem('mms_wg'); if(s) return JSON.parse(s); } catch(e){}
+  return WG_DEFAULT.slice();
+}
+function wgSaveLayout(layout) {
+  try { localStorage.setItem('mms_wg', JSON.stringify(layout)); } catch(e){}
+}
+
+// ---- Touch drag state ----
+var _touchDragWid = null;
+var _touchGhost = null;
+var _touchOverWid = null;
+var _touchStartX = 0, _touchStartY = 0;
+var _touchDragEl = null;
+
+// ---- Render all widgets into container ----
+function renderWidgets() {
+  var container = document.getElementById('dashWidgetContainer');
+  if(!container) return;
+  container.innerHTML = '';
+  if(_dashEditMode) container.classList.add('dash-edit-mode');
+  else container.classList.remove('dash-edit-mode');
+
+  var layout = wgLoadLayout();
+
+  layout.forEach(function(wid) {
+    var def = WG_DEFS[wid]; if(!def) return;
+    var slot = document.createElement('div');
+    slot.className = 'wg-slot';
+    slot.dataset.wid = wid;
+
+    // Handle bar (shown in edit mode via CSS)
+    var hbar = document.createElement('div');
+    hbar.className = 'wg-handle-bar';
+    hbar.innerHTML =
+      '<div class="wg-drag-handle" title="ধরে টানুন">⠿⠿ <span style="font-size:12px;opacity:.8;">সরান</span></div>'
+      +'<span class="wg-title-lbl">'+def.icon+' '+def.label+'</span>'
+      +'<button class="wg-remove-btn" onclick="wgRemove(\''+wid+'\')">✕ বাদ</button>';
+    slot.appendChild(hbar);
+    slot.insertAdjacentHTML('beforeend', def.render());
+
+    // ---- Mouse/Desktop drag events ----
+    slot.setAttribute('draggable', _dashEditMode ? 'true' : 'false');
+    slot.addEventListener('dragstart', function(e) {
+      if(!_dashEditMode) { e.preventDefault(); return; }
+      _wgDragSrc = wid;
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', wid);
+      setTimeout(function(){ slot.classList.add('wg-dragging'); }, 0);
+    });
+    slot.addEventListener('dragend', function() {
+      slot.classList.remove('wg-dragging');
+      document.querySelectorAll('.wg-drag-over').forEach(function(el){ el.classList.remove('wg-drag-over'); });
+      _wgDragSrc = null;
+    });
+    slot.addEventListener('dragover', function(e) {
+      if(!_dashEditMode || !_wgDragSrc) return;
+      e.preventDefault(); e.dataTransfer.dropEffect = 'move';
+      document.querySelectorAll('.wg-drag-over').forEach(function(el){ el.classList.remove('wg-drag-over'); });
+      slot.classList.add('wg-drag-over');
+    });
+    slot.addEventListener('dragleave', function() { slot.classList.remove('wg-drag-over'); });
+    slot.addEventListener('drop', function(e) {
+      e.preventDefault();
+      slot.classList.remove('wg-drag-over');
+      var fromWid = e.dataTransfer.getData('text/plain'), toWid = wid;
+      if(!fromWid || fromWid === toWid) return;
+      var lay = wgLoadLayout();
+      var fi = lay.indexOf(fromWid), ti = lay.indexOf(toWid);
+      if(fi > -1 && ti > -1) { lay.splice(fi, 1); lay.splice(ti, 0, fromWid); }
+      wgSaveLayout(lay); renderWidgets(); renderDashboardData();
+    });
+
+    // ---- Touch drag (for mobile) ----
+    var dh = hbar.querySelector('.wg-drag-handle');
+    if(dh) {
+      dh.addEventListener('touchstart', function(e) {
+        if(!_dashEditMode) return;
+        e.preventDefault();
+        var t = e.touches[0];
+        _touchDragWid = wid;
+        _touchDragEl = slot;
+        _touchStartX = t.clientX; _touchStartY = t.clientY;
+        // Clone ghost
+        var ghost = slot.cloneNode(true);
+        ghost.id = 'wgTouchGhost';
+        ghost.querySelector('.wg-handle-bar') && (ghost.querySelector('.wg-handle-bar').style.display='flex');
+        ghost.style.width = slot.offsetWidth+'px';
+        ghost.style.left = slot.getBoundingClientRect().left+'px';
+        ghost.style.top = slot.getBoundingClientRect().top+'px';
+        document.body.appendChild(ghost);
+        _touchGhost = ghost;
+        slot.classList.add('wg-dragging');
+      }, {passive:false});
+      dh.addEventListener('touchmove', function(e) {
+        if(!_touchGhost) return;
+        e.preventDefault();
+        var t = e.touches[0];
+        var dx = t.clientX - _touchStartX, dy = t.clientY - _touchStartY;
+        var rect = _touchDragEl.getBoundingClientRect();
+        _touchGhost.style.left = (rect.left + dx)+'px';
+        _touchGhost.style.top  = (rect.top  + dy)+'px';
+        // Find target slot under finger
+        _touchGhost.style.display='none';
+        var el = document.elementFromPoint(t.clientX, t.clientY);
+        _touchGhost.style.display='';
+        var targetSlot = el ? el.closest('.wg-slot') : null;
+        document.querySelectorAll('.wg-drag-over').forEach(function(x){ x.classList.remove('wg-drag-over'); });
+        if(targetSlot && targetSlot !== _touchDragEl) {
+          _touchOverWid = targetSlot.dataset.wid;
+          targetSlot.classList.add('wg-drag-over');
+        } else { _touchOverWid = null; }
+      }, {passive:false});
+      dh.addEventListener('touchend', function() {
+        if(_touchGhost) { _touchGhost.remove(); _touchGhost = null; }
+        if(_touchDragEl) _touchDragEl.classList.remove('wg-dragging');
+        document.querySelectorAll('.wg-drag-over').forEach(function(x){ x.classList.remove('wg-drag-over'); });
+        if(_touchDragWid && _touchOverWid && _touchDragWid !== _touchOverWid) {
+          var lay = wgLoadLayout();
+          var fi = lay.indexOf(_touchDragWid), ti = lay.indexOf(_touchOverWid);
+          if(fi > -1 && ti > -1) { lay.splice(fi, 1); lay.splice(ti, 0, _touchDragWid); }
+          wgSaveLayout(lay); renderWidgets(); renderDashboardData();
+        }
+        _touchDragWid = null; _touchOverWid = null; _touchDragEl = null;
+      });
+    }
+
+    container.appendChild(slot);
+  });
+
+  // Always re-fill data after rendering
+  renderDashboardData();
+}
+
+function wgRemove(wid) {
+  var layout = wgLoadLayout();
+  var idx = layout.indexOf(wid);
+  if(idx > -1) layout.splice(idx, 1);
+  wgSaveLayout(layout);
+  renderWidgets();
+  var def = WG_DEFS[wid];
+  toast((def?def.icon+' "'+def.label+'"':'উইজেট')+' সরানো হয়েছে।');
+}
+
+function wgAdd(wid) {
+  var layout = wgLoadLayout();
+  if(layout.indexOf(wid) > -1) return;
+  layout.push(wid);
+  wgSaveLayout(layout);
+  document.getElementById('wgPickerModal').remove();
+  renderWidgets();
+  var def = WG_DEFS[wid];
+  toast((def?def.icon+' "'+def.label+'"':'উইজেট')+' যোগ করা হয়েছে ✅');
+}
+
+function dashEditMode(on) {
+  _dashEditMode = on;
+  var tb = document.getElementById('dashWidgetToolbar');
+  var eb = document.getElementById('dashEditBtn');
+  if(tb) { if(on) tb.classList.add('active'); else tb.classList.remove('active'); }
+  if(eb) eb.style.display = on ? 'none' : 'flex';
+  renderWidgets();
+  if(!on) { toast('ড্যাশবোর্ড লেআউট সংরক্ষিত ✅'); }
+}
+
+function resetWidgetLayout() {
+  if(!confirm('ডিফল্ট লেআউটে ফিরে যাবেন?')) return;
+  localStorage.removeItem('mms_wg');
+  renderWidgets();
+  toast('ডিফল্ট লেআউট পুনরুদ্ধার হয়েছে।');
+}
+
+function openWidgetPicker() {
+  var existing = document.getElementById('wgPickerModal');
+  if(existing) existing.remove();
+  var layout = wgLoadLayout();
+  var m = document.createElement('div');
+  m.id = 'wgPickerModal'; m.className = 'modal-overlay open';
+  var grid = Object.keys(WG_DEFS).map(function(wid) {
+    var def = WG_DEFS[wid];
+    var used = layout.indexOf(wid) > -1;
+    return '<div class="wg-picker-item'+(used?' wg-used':'')+'" onclick="'+(used?'':' wgAdd(\''+wid+'\')')+'">'
+      +'<div class="wg-picker-icon">'+def.icon+'</div>'
+      +'<div class="wg-picker-label">'+def.label+'</div>'
+      +(used?'<div class="wg-picker-used-tag">✓ যোগ আছে</div>':'')
+      +'</div>';
+  }).join('');
+  m.innerHTML = '<div class="modal" style="max-width:540px;">'
+    +'<div class="modal-header"><span class="modal-title">+ উইজেট যোগ করুন</span>'
+      +'<button class="modal-close" onclick="document.getElementById(\'wgPickerModal\').remove()">✕</button>'
+    +'</div>'
+    +'<div class="modal-body">'
+      +'<p style="font-size:13px;color:var(--text-muted);margin-bottom:4px;">যোগ করতে চান এমন উইজেটে ক্লিক করুন।</p>'
+      +'<div class="wg-picker-grid">'+grid+'</div>'
+    +'</div></div>';
+  document.body.appendChild(m);
+}
+
+// ---- renderDashboardData: fill all widget data ----
+function renderDashboardData() {
+  var today = new Date().toISOString().split('T')[0];
+  var monthStr = today.slice(0,7);
+
+  // Attendance donut
+  var presentToday=0, absentToday=0;
+  Object.entries(data.attendance||{}).forEach(function([k,v]){
+    if(!k.endsWith('_'+today)) return;
+    Object.entries(v).forEach(function([sid,st]){ if(sid.startsWith('_')) return; if(st==='উপস্থিত') presentToday++; else if(st==='অনুপস্থিত') absentToday++; });
+  });
+  var attTotal=presentToday+absentToday, attPct=attTotal>0?Math.round(presentToday/attTotal*100):0;
+  var circ=100, pDash=attTotal>0?(presentToday/attTotal*circ).toFixed(1):0, aDash=attTotal>0?(absentToday/attTotal*circ).toFixed(1):0;
+  var e1=document.getElementById('attDonutPresent'),e2=document.getElementById('attDonutAbsent'),e3=document.getElementById('attDonutPct'),e4=document.getElementById('attLegPresent'),e5=document.getElementById('attLegAbsent');
+  if(e1) e1.setAttribute('stroke-dasharray',pDash+' '+(circ-pDash));
+  if(e2){ e2.setAttribute('stroke-dasharray',aDash+' '+(circ-aDash)); e2.setAttribute('stroke-dashoffset',-parseFloat(pDash)+''); }
+  if(e3) e3.textContent=attTotal>0?attPct+'%':'-';
+  if(e4) e4.textContent='উপস্থিত: '+presentToday;
+  if(e5) e5.textContent='অনুপস্থিত: '+absentToday;
+  var mini=document.getElementById('attClassMini');
+  if(mini && attTotal>0){
+    var clsAtt={};
+    Object.entries(data.attendance||{}).forEach(function([k,v]){ if(!k.endsWith('_'+today)) return; var c=k.replace('_'+today,''); if(!clsAtt[c]) clsAtt[c]={p:0,a:0}; Object.entries(v).forEach(function([s,st]){ if(s.startsWith('_')) return; if(st==='উপস্থিত') clsAtt[c].p++; else if(st==='অনুপস্থিত') clsAtt[c].a++; }); });
+    mini.innerHTML=Object.entries(clsAtt).map(function(e){ var c=e[0],v=e[1],t=v.p+v.a,p=t>0?Math.round(v.p/t*100):0; return '<div style="display:flex;align-items:center;gap:5px;margin-bottom:3px;"><span style="width:36px;font-size:9px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text-muted);">'+c+'</span><div style="flex:1;background:#eee;border-radius:3px;height:8px;"><div style="width:'+p+'%;background:var(--primary);height:100%;border-radius:3px;"></div></div><span style="width:25px;font-size:9px;font-weight:700;color:var(--primary);text-align:right;">'+p+'%</span></div>'; }).join('');
+  } else if(mini) mini.innerHTML='';
+
+  // Fee bar chart
+  var fb=document.getElementById('feeBarChart');
+  if(fb){
+    var ms6=[]; for(var mi=5;mi>=0;mi--){ var dd=new Date(); dd.setMonth(dd.getMonth()-mi); var mk=dd.getFullYear()+'-'+String(dd.getMonth()+1).padStart(2,'0'); var lbl=['জানু','ফেব্রু','মার্চ','এপ্রিল','মে','জুন','জুলাই','আগস্ট','সেপ্টে','অক্টো','নভে','ডিসে'][dd.getMonth()]; var amt=(data.feePayments||[]).filter(function(p){return (p.date||'').slice(0,7)===mk;}).reduce(function(a,b){return a+Number(b.amount);},0); ms6.push({lbl:lbl,amt:amt,mk:mk}); }
+    var maxA=Math.max(1,Math.max.apply(null,ms6.map(function(m){return m.amt;})));
+    fb.innerHTML=ms6.map(function(m){ var p=Math.round(m.amt/maxA*100),isT=m.mk===monthStr; return '<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;"><div style="font-size:9px;color:var(--text-muted);font-weight:'+(isT?'700':'400')+';">৳'+(m.amt>=1000?(m.amt/1000).toFixed(1)+'k':m.amt)+'</div><div style="width:100%;background:'+(isT?'var(--primary)':'var(--primary-light)')+';border-radius:4px 4px 0 0;height:'+(Math.max(4,p*1.3))+'px;opacity:'+(isT?1:.65)+';"></div><div style="font-size:9px;color:var(--text-muted);">'+m.lbl+'</div></div>'; }).join('');
+  }
+
+  // Class bar chart
+  var cb=document.getElementById('classBarChart');
+  if(cb){
+    var cls=data.settings.classes||[]; var ex=[]; data.students.forEach(function(s){ if(s.cls&&cls.indexOf(s.cls.trim())===-1&&ex.indexOf(s.cls.trim())===-1) ex.push(s.cls.trim()); }); var all=cls.concat(ex);
+    var counts=all.map(function(c){ return {c:c,n:data.students.filter(function(s){return (s.cls||'').trim()===c.trim();}).length}; }); var mx=Math.max(1,Math.max.apply(null,counts.map(function(x){return x.n;}))); var clrs=['var(--primary)','#2563ab','#7c3aed','#d97706','#dc2626','#0891b2','#059669'];
+    cb.innerHTML=counts.map(function(x,i){ var p=Math.round(x.n/mx*100); return '<div style="display:flex;align-items:center;gap:8px;"><div style="width:56px;font-size:11px;color:var(--text-muted);text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+x.c+'</div><div style="flex:1;background:#f0f0f0;border-radius:4px;height:15px;"><div style="width:'+p+'%;background:'+clrs[i%clrs.length]+';height:100%;border-radius:4px;transition:.4s;min-width:'+(x.n>0?'4':'0')+'px;"></div></div><div style="width:26px;font-size:11px;font-weight:700;color:'+(x.n>0?'var(--primary)':'#bbb')+';">'+x.n+'</div></div>'; }).join('')||'<p style="color:var(--text-muted);font-size:12px;">শ্রেণি নেই।</p>';
+  }
+
+  // Birthday
+  var bd=document.getElementById('dashBirthdayList');
+  if(bd){ var tdMD=today.slice(5),bds=(data.students||[]).filter(function(s){return s.dob&&s.dob.slice(5)===tdMD;}); bd.innerHTML=bds.length===0?'<div style="color:var(--text-muted);text-align:center;padding:10px;">🎂 আজ কোনো জন্মদিন নেই।</div>':bds.map(function(s){ var age=s.dob?(new Date().getFullYear()-new Date(s.dob).getFullYear()):''; return '<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border);"><div style="width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,#e91e8c,#ff6b9d);display:flex;align-items:center;justify-content:center;font-size:15px;">🎂</div><div><div style="font-weight:600;font-size:13px;">'+s.name+'</div><div style="font-size:11px;color:var(--text-muted);">'+s.cls+(age?' • '+age+' বছর':'')+'</div></div>'+(getContactMobile(s)?'<a href="tel:'+getContactMobile(s)+'" style="margin-left:auto;font-size:18px;text-decoration:none;">📞</a>':'')+'</div>'; }).join(''); }
+
+  // Pending leave
+  var pl=document.getElementById('dashPendingLeaveList');
+  if(pl){ var pi=(data.leaves||[]).filter(function(l){return l.status==='অপেক্ষমাণ'||l.status==='pending';}); pl.innerHTML=pi.length===0?'<div style="color:var(--text-muted);text-align:center;padding:10px;">✅ কোনো আবেদন অনুমোদন বাকি নেই।</div>':pi.slice(0,4).map(function(l){ var s=data.students.find(function(x){return x.id===l.applicantId;})||data.teachers.find(function(x){return x.id===l.applicantId;}); return '<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border);"><div style="width:26px;height:26px;border-radius:50%;background:#fff3cd;display:flex;align-items:center;justify-content:center;font-size:13px;">⏳</div><div style="flex:1;"><div style="font-size:13px;font-weight:600;">'+(s?s.name:'অজানা')+'</div><div style="font-size:11px;color:var(--text-muted);">'+(l.reason||'').slice(0,30)+'</div></div><span style="background:#fff3cd;color:#92400e;border-radius:4px;padding:2px 6px;font-size:10px;font-weight:700;">অপেক্ষমাণ</span></div>'; }).join('')+(pi.length>4?'<div style="text-align:center;font-size:12px;color:var(--primary);margin-top:5px;">আরো '+(pi.length-4)+' টি →</div>':''); }
+
+  // Recent notices
+  var rn=document.getElementById('recentNotices');
+  if(rn){ if(!data.notices||data.notices.length===0){ rn.innerHTML='<p style="color:var(--text-muted);">কোনো বিজ্ঞপ্তি নেই।</p>'; } else { rn.innerHTML=data.notices.slice(-5).reverse().map(function(n){ return '<div class="alert '+(n.ntype==='জরুরি'?'alert-danger':n.ntype==='ছুটি সংক্রান্ত'?'alert-warning':'alert-info')+'" style="margin-bottom:8px;"><div style="font-weight:700;font-size:13px;">'+n.title+'</div><div style="font-size:11px;margin-top:2px;">'+(n.date||'')+' — '+(n.ntype||'')+'</div></div>'; }).join(''); } }
+
+  // Today summary
+  var ts=document.getElementById('todaySummary');
+  if(ts){ var tf=data.finance.filter(function(f){return f.date===today;}),ta=Object.entries(data.attendance).filter(function(e){return e[0].includes('_'+today);}); ts.innerHTML='<div class="alert alert-success">📅 আজ: '+new Date().toLocaleDateString('bn-BD',{weekday:'long',year:'numeric',month:'long',day:'numeric'})+'</div><div class="flex gap-12 flex-wrap"><div style="flex:1;min-width:120px;text-align:center;padding:12px;background:var(--primary-ultra-light);border-radius:8px;"><div style="font-size:20px;font-weight:700;color:var(--primary);">'+tf.length+'</div><div class="text-muted">আজকের লেনদেন</div></div><div style="flex:1;min-width:120px;text-align:center;padding:12px;background:var(--info-light);border-radius:8px;"><div style="font-size:20px;font-weight:700;color:var(--info);">'+ta.length+'</div><div class="text-muted">উপস্থিতি এন্ট্রি</div></div></div>'; }
+
+  // Top students & teachers
+  renderTopStudents();
+  renderTopTeachers();
+  renderPendingPayments();
+  renderTodayAbsent();
+}
+
+
 // ===================== INIT =====================
 function init() {
   // Data migration: cls field trim করো (space problem fix)
@@ -9256,6 +9619,7 @@ var _fns = {
   filterLeaveStatus, updateLeaveApplicantList, fillLeaveApplicant, checkLeaveAdvanceNotice,
   approveLeaveTeacher, approveLeaveManagement, rejectLeave, renderTodayAbsent,
   verifyBirthReg, teacherApproveLeave, teacherRejectLeave, renderTeacherLeaveApproval,
+  dashEditMode, resetWidgetLayout, openWidgetPicker, wgRemove, wgAdd,
 };
 Object.entries(_fns).forEach(([k,v]) => { if(typeof v === 'function') window[k] = v; });
 </script>
