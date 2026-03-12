@@ -620,7 +620,7 @@
         </div>
         <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
           <button onclick="resetWidgetLayout()" style="background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.35);border-radius:6px;padding:5px 11px;font-size:12px;cursor:pointer;font-family:inherit;">↺ ডিফল্ট</button>
-          <button onclick="openWidgetPicker()" style="background:rgba(255,255,255,.2);color:#fff;border:1px solid rgba(255,255,255,.4);border-radius:6px;padding:5px 12px;font-size:12px;cursor:pointer;font-family:inherit;">+ উইজেট যোগ</button>
+          <button onclick="openWidgetPicker()" style="background:rgba(255,255,255,.2);color:#fff;border:1px solid rgba(255,255,255,.4);border-radius:6px;padding:5px 12px;font-size:12px;cursor:pointer;font-family:inherit;">👁️ উইজেট দেখান/লুকান</button>
           <button onclick="dashEditMode(false)" style="background:#fff;color:var(--primary);border:none;border-radius:6px;padding:5px 14px;font-size:12px;cursor:pointer;font-weight:700;font-family:inherit;">✅ সম্পন্ন</button>
         </div>
       </div>
@@ -9348,11 +9348,11 @@ function wgDefaultPos(idx, containerW) {
 }
 
 function wgLoadLayout() {
-  try { var s=localStorage.getItem('mms_wg5'); if(s) return JSON.parse(s); } catch(e){}
-  return null; // will be built on first render with real container width
+  try { var s=localStorage.getItem('mms_wg6'); if(s) return JSON.parse(s); } catch(e){}
+  return null;
 }
 function wgSaveLayout(layout) {
-  try { localStorage.setItem('mms_wg5', JSON.stringify(layout)); } catch(e){}
+  try { localStorage.setItem('mms_wg6', JSON.stringify(layout)); } catch(e){}
 }
 function wgUpdateItem(wid, props) {
   var lay=wgLoadLayout()||[];
@@ -9360,6 +9360,20 @@ function wgUpdateItem(wid, props) {
   if(!item) return;
   Object.assign(item, props);
   wgSaveLayout(lay);
+}
+
+// সব widget সবসময় layout এ আছে — hidden:true হলে দেখাবে না
+function wgEnsureAll(layout, cW) {
+  var changed = false;
+  Object.keys(WG_DEFS).forEach(function(wid) {
+    if(!layout.find(function(x){ return x.wid===wid; })) {
+      var idx = layout.filter(function(x){return !x.hidden;}).length;
+      var p = wgDefaultPos(idx, cW);
+      layout.push({wid:wid, x:p.x, y:p.y, w:p.w, h:p.h, hidden:false});
+      changed = true;
+    }
+  });
+  return changed;
 }
 
 // ── Render ──
@@ -9375,17 +9389,29 @@ function renderWidgets() {
   var layout = wgLoadLayout();
   if(!layout) {
     layout = WG_DEFAULT.map(function(wid,i){
-      var p=wgDefaultPos(i,cW); return {wid:wid,x:p.x,y:p.y,w:p.w,h:p.h};
+      var p=wgDefaultPos(i,cW); return {wid:wid,x:p.x,y:p.y,w:p.w,h:p.h,hidden:false};
+    });
+    // বাকি widget গুলো hidden করে রাখো
+    Object.keys(WG_DEFS).forEach(function(wid){
+      if(!layout.find(function(x){return x.wid===wid;})){
+        var p=wgDefaultPos(layout.length,cW);
+        layout.push({wid:wid,x:p.x,y:p.y,w:p.w,h:p.h,hidden:true});
+      }
     });
     wgSaveLayout(layout);
+  } else {
+    if(wgEnsureAll(layout, cW)) wgSaveLayout(layout);
   }
 
-  // Set container height
+  // hidden নয় এমন widget গুলো দেখাও
+  var visible = layout.filter(function(x){ return !x.hidden; });
+
+  // Set container height — visible widget অনুযায়ী
   var maxY = 0;
-  layout.forEach(function(item){ if(item.y+item.h > maxY) maxY=item.y+item.h; });
+  visible.forEach(function(item){ if(item.y+item.h > maxY) maxY=item.y+item.h; });
   container.style.height = (maxY + 30) + 'px';
 
-  layout.forEach(function(item) {
+  visible.forEach(function(item) {
     var wid=item.wid, def=WG_DEFS[wid]; if(!def) return;
 
     var slot = document.createElement('div');
@@ -9520,26 +9546,30 @@ function wgStartResize(e, slot, wid, dir) {
 }
 
 function wgRemove(wid) {
-  var lay=wgLoadLayout();
-  var i=lay.findIndex(function(x){return x.wid===wid;});
-  if(i>-1) lay.splice(i,1);
+  var lay=wgLoadLayout()||[];
+  var item=lay.find(function(x){return x.wid===wid;});
+  if(item) item.hidden=true;
   wgSaveLayout(lay); renderWidgets();
   var def=WG_DEFS[wid];
-  toast((def?def.icon+' "'+def.label+'"':'উইজেট')+' বাদ দেওয়া হয়েছে।');
+  toast((def?def.icon+' "'+def.label+'"':'উইজেট')+' লুকানো হয়েছে।');
 }
 
 function wgAdd(wid) {
-  var lay=wgLoadLayout();
-  if(lay.find(function(x){return x.wid===wid;})) return;
-  // Find a free spot
-  var maxY=0;
-  lay.forEach(function(item){if(item.y+item.h>maxY) maxY=item.y+item.h;});
-  lay.push({wid:wid, x:0, y:maxY+WG_GAP, w:WG_COL_W, h:WG_COL_H});
+  var lay=wgLoadLayout()||[];
+  var item=lay.find(function(x){return x.wid===wid;});
+  if(item) {
+    item.hidden=false;
+  } else {
+    var cW=(document.getElementById('dashWidgetContainer')||{}).offsetWidth||900;
+    var idx=lay.filter(function(x){return !x.hidden;}).length;
+    var p=wgDefaultPos(idx,cW);
+    lay.push({wid:wid,x:p.x,y:p.y,w:p.w,h:p.h,hidden:false});
+  }
   wgSaveLayout(lay);
   var m=document.getElementById('wgPickerModal'); if(m) m.remove();
   renderWidgets();
   var def=WG_DEFS[wid];
-  toast((def?def.icon+' "'+def.label+'"':'উইজেট')+' যোগ করা হয়েছে ✅');
+  toast((def?def.icon+' "'+def.label+'"':'উইজেট')+' দেখানো হচ্ছে ✅');
 }
 
 
@@ -9564,117 +9594,57 @@ function dashEditMode(on) {
 
 function resetWidgetLayout() {
   if(!confirm('ডিফল্ট লেআউটে ফিরে যাবেন?')) return;
-  localStorage.removeItem('mms_wg5');
+  localStorage.removeItem('mms_wg6');
   renderWidgets();
   toast('ডিফল্ট লেআউট পুনরুদ্ধার হয়েছে।');
 }
 
 function openWidgetPicker() {
   var existing = document.getElementById('wgPickerModal');
-  if(existing) existing.remove();
-  var layout = wgLoadLayout();
+  if(existing) { existing.remove(); return; }
+  var lay = wgLoadLayout()||[];
   var m = document.createElement('div');
   m.id = 'wgPickerModal'; m.className = 'modal-overlay open';
+
   var grid = Object.keys(WG_DEFS).map(function(wid) {
     var def = WG_DEFS[wid];
-    var used = layout.some(function(x){ return x.wid===wid; });
-    return '<div class="wg-picker-item'+(used?' wg-used':'')+'" data-wid="'+wid+'" data-used="'+(used?'1':'0')+'" draggable="'+(used?'false':'true')+'">'
+    var item = lay.find(function(x){ return x.wid===wid; });
+    var visible = item && !item.hidden;
+    return '<div class="wg-picker-item'+(visible?' wg-vis':'')+'" data-wid="'+wid+'" style="position:relative;">'
+      +'<div style="position:absolute;top:6px;right:6px;font-size:16px;">'+(visible?'👁️':'🚫')+'</div>'
       +'<div class="wg-picker-icon">'+def.icon+'</div>'
       +'<div class="wg-picker-label">'+def.label+'</div>'
-      +(used?'<div class="wg-picker-used-tag">✓ যোগ আছে</div>':'<div class="wg-picker-used-tag" style="color:var(--primary);">ধরে টানুন বা ক্লিক করুন</div>')
+      +'<div class="wg-picker-used-tag" style="color:'+(visible?'#25a244':'#999')+';font-weight:700;">'+(visible?'চালু আছে':'লুকানো আছে')+'</div>'
       +'</div>';
   }).join('');
-  m.innerHTML = '<div class="modal" style="max-width:560px;">'
-    +'<div class="modal-header"><span class="modal-title">+ উইজেট যোগ করুন</span>'
+
+  m.innerHTML = '<div class="modal" style="max-width:580px;">'
+    +'<div class="modal-header"><span class="modal-title">👁️ উইজেট দেখান / লুকান</span>'
       +'<button class="modal-close" onclick="document.getElementById(\'wgPickerModal\').remove()">✕</button>'
     +'</div>'
     +'<div class="modal-body">'
-      +'<p style="font-size:13px;color:var(--text-muted);margin-bottom:10px;">📌 ক্লিক করে যোগ করুন, অথবা ধরে টেনে ড্যাশবোর্ডের যেকোনো জায়গায় ছেড়ে দিন।</p>'
+      +'<p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;">ক্লিক করে যেকোনো উইজেট চালু বা বন্ধ করুন।</p>'
       +'<div class="wg-picker-grid" id="wgPickerGrid">'+grid+'</div>'
     +'</div></div>';
   document.body.appendChild(m);
 
-  // ── Click to add ──
   document.getElementById('wgPickerGrid').addEventListener('click', function(e) {
     var item = e.target.closest('.wg-picker-item');
-    if(!item || item.dataset.used==='1') return;
-    wgAdd(item.dataset.wid);
-  });
-
-  // ── Drag from picker to dashboard ──
-  var _dragWid = null;
-  var _ghost   = null;
-
-  document.getElementById('wgPickerGrid').addEventListener('mousedown', function(e) {
-    var item = e.target.closest('.wg-picker-item');
-    if(!item || item.dataset.used==='1') return;
-    _dragWid = item.dataset.wid;
-    var def  = WG_DEFS[_dragWid];
-
-    // Ghost
-    _ghost = document.createElement('div');
-    _ghost.style.cssText = 'position:fixed;z-index:999999;pointer-events:none;'
-      +'background:linear-gradient(135deg,#1a4a2e,#2d7a4f);'
-      +'color:#fff;border-radius:12px;padding:10px 16px;font-size:13px;font-weight:700;'
-      +'box-shadow:0 8px 32px rgba(0,0,0,.35);display:flex;align-items:center;gap:8px;'
-      +'opacity:.95;transform:rotate(2deg);white-space:nowrap;';
-    _ghost.innerHTML = def.icon + ' ' + def.label;
-    document.body.appendChild(_ghost);
-
-    // Modal এখনই বন্ধ — dashboard দেখা যাবে
-    m.remove();
-
-    function moveGhost(ev) {
-      var p = ev.touches ? ev.touches[0] : ev;
-      _ghost.style.left = (p.clientX - 70) + 'px';
-      _ghost.style.top  = (p.clientY - 25) + 'px';
-      var cont = document.getElementById('dashWidgetContainer');
-      if(cont) {
-        var r = cont.getBoundingClientRect();
-        var over = p.clientX>=r.left && p.clientX<=r.right && p.clientY>=r.top && p.clientY<=r.bottom;
-        cont.style.outline = over ? '3px dashed #2d7a4f' : '';
-      }
+    if(!item) return;
+    var wid = item.dataset.wid;
+    var layItem = (wgLoadLayout()||[]).find(function(x){ return x.wid===wid; });
+    var isVisible = layItem && !layItem.hidden;
+    if(isVisible) {
+      wgRemove(wid);
+    } else {
+      wgAdd(wid);
     }
-
-    function dropGhost(ev) {
-      var p = ev.changedTouches ? ev.changedTouches[0] : ev;
-      if(_ghost) { _ghost.remove(); _ghost=null; }
-      document.removeEventListener('mousemove', moveGhost);
-      document.removeEventListener('mouseup',   dropGhost);
-      document.removeEventListener('touchmove', moveGhost);
-      document.removeEventListener('touchend',  dropGhost);
-
-      var cont = document.getElementById('dashWidgetContainer');
-      if(cont) cont.style.outline='';
-      if(!_dragWid) return;
-
-      var lay = wgLoadLayout();
-      if(lay.find(function(x){ return x.wid===_dragWid; })) { _dragWid=null; return; }
-
-      var x=0, y=0;
-      if(cont) {
-        var r = cont.getBoundingClientRect();
-        var scrollY = window.pageYOffset||document.documentElement.scrollTop||0;
-        x = snap(Math.max(0, p.clientX - r.left - 20));
-        y = snap(Math.max(0, (p.clientY + scrollY) - (r.top + scrollY)));
-      }
-
-      lay.push({ wid:_dragWid, x:x, y:y, w:WG_COL_W, h:WG_COL_H });
-      wgSaveLayout(lay);
-      renderWidgets();
-      var def2 = WG_DEFS[_dragWid];
-      toast((def2?def2.icon+' "'+def2.label+'"':'উইজেট')+' যোগ হয়েছে ✅');
-      _dragWid = null;
-    }
-
-    document.addEventListener('mousemove', moveGhost);
-    document.addEventListener('mouseup',   dropGhost);
-    document.addEventListener('touchmove', moveGhost, {passive:false});
-    document.addEventListener('touchend',  dropGhost);
-    moveGhost(e);
-    e.preventDefault();
+    // Picker refresh
+    var pm=document.getElementById('wgPickerModal'); if(pm) pm.remove();
+    openWidgetPicker();
   });
 }
+
 
 // ═══════════════════════════════════════════
 // WhatsApp Widget Logic
