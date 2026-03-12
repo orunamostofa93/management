@@ -9611,7 +9611,7 @@ function openWidgetPicker() {
     _dragWid = item.dataset.wid;
     var def  = WG_DEFS[_dragWid];
 
-    // Ghost element
+    // Ghost
     _ghost = document.createElement('div');
     _ghost.style.cssText = 'position:fixed;z-index:999999;pointer-events:none;'
       +'background:linear-gradient(135deg,#1a4a2e,#2d7a4f);'
@@ -9621,62 +9621,51 @@ function openWidgetPicker() {
     _ghost.innerHTML = def.icon + ' ' + def.label;
     document.body.appendChild(_ghost);
 
-    // Modal কে drag সময় transparent করো — behind রেখো কিন্তু block না
-    m.style.pointerEvents = 'none';
+    // Modal এখনই বন্ধ — dashboard দেখা যাবে
+    m.remove();
 
     function moveGhost(ev) {
       var p = ev.touches ? ev.touches[0] : ev;
       _ghost.style.left = (p.clientX - 70) + 'px';
       _ghost.style.top  = (p.clientY - 25) + 'px';
-
-      // Dashboard highlight
       var cont = document.getElementById('dashWidgetContainer');
       if(cont) {
         var r = cont.getBoundingClientRect();
         var over = p.clientX>=r.left && p.clientX<=r.right && p.clientY>=r.top && p.clientY<=r.bottom;
         cont.style.outline = over ? '3px dashed #2d7a4f' : '';
-        cont.style.background = over ? 'rgba(45,122,79,.04)' : '';
       }
     }
 
     function dropGhost(ev) {
       var p = ev.changedTouches ? ev.changedTouches[0] : ev;
-
-      // Cleanup
-      if(_ghost) { _ghost.remove(); _ghost = null; }
-      m.style.pointerEvents = '';
+      if(_ghost) { _ghost.remove(); _ghost=null; }
       document.removeEventListener('mousemove', moveGhost);
       document.removeEventListener('mouseup',   dropGhost);
       document.removeEventListener('touchmove', moveGhost);
       document.removeEventListener('touchend',  dropGhost);
 
       var cont = document.getElementById('dashWidgetContainer');
-      if(cont) { cont.style.outline=''; cont.style.background=''; }
-
+      if(cont) { cont.style.outline=''; }
       if(!_dragWid || !cont) { _dragWid=null; return; }
 
-      // Drop position — viewport থেকে container relative + scroll offset
-      var r   = cont.getBoundingClientRect();
-      var sx  = p.clientX, sy = p.clientY;
+      var r = cont.getBoundingClientRect();
+      var inside = p.clientX>=r.left && p.clientX<=r.right && p.clientY>=r.top && p.clientY<=r.bottom;
 
-      // Dashboard এর মধ্যে drop হয়েছে কিনা
-      var inside = sx>=r.left && sx<=r.right && sy>=r.top && sy<=r.bottom;
-      if(!inside) { _dragWid=null; return; }
-
-      // Container এর ভেতরে relative position (scroll সহ)
-      var relX = snap(Math.max(0, sx - r.left - 20));
-      var relY = snap(Math.max(0, sy - r.top  + (cont.parentElement ? cont.parentElement.scrollTop : 0)));
-
-      var lay = wgLoadLayout();
-      if(lay.find(function(x){ return x.wid===_dragWid; })) { _dragWid=null; return; }
-      lay.push({ wid:_dragWid, x:relX, y:relY, w:WG_COL_W, h:WG_COL_H });
-      wgSaveLayout(lay);
-
-      var modal = document.getElementById('wgPickerModal');
-      if(modal) modal.remove();
-      renderWidgets();
-      var def2 = WG_DEFS[_dragWid];
-      toast((def2 ? def2.icon+' "'+def2.label+'"' : 'উইজেট')+' যোগ হয়েছে ✅');
+      if(inside) {
+        var relX = snap(Math.max(0, p.clientX - r.left - 20));
+        var relY = snap(Math.max(0, p.clientY - r.top + cont.parentElement.scrollTop));
+        var lay = wgLoadLayout();
+        if(!lay.find(function(x){ return x.wid===_dragWid; })) {
+          lay.push({ wid:_dragWid, x:relX, y:relY, w:WG_COL_W, h:WG_COL_H });
+          wgSaveLayout(lay);
+          renderWidgets();
+          var def2 = WG_DEFS[_dragWid];
+          toast((def2?def2.icon+' "'+def2.label+'"':'উইজেট')+' যোগ হয়েছে ✅');
+        }
+      } else {
+        // Dashboard এ না পড়লে শুধু যোগ করো নিচে
+        wgAdd(_dragWid);
+      }
       _dragWid = null;
     }
 
@@ -9684,7 +9673,6 @@ function openWidgetPicker() {
     document.addEventListener('mouseup',   dropGhost);
     document.addEventListener('touchmove', moveGhost, {passive:false});
     document.addEventListener('touchend',  dropGhost);
-
     moveGhost(e);
     e.preventDefault();
   });
