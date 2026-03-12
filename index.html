@@ -9381,6 +9381,11 @@ function renderWidgets() {
   renderDashboardData();
 }
 
+
+// ── Snap to grid ──
+var WG_SNAP = 20; // 20px grid — align হবে automatically
+function snap(v) { return Math.round(v/WG_SNAP)*WG_SNAP; }
+
 // ── Drag ──
 function wgStartDrag(e, slot, wid) {
   var startX=e.clientX, startY=e.clientY;
@@ -9389,7 +9394,7 @@ function wgStartDrag(e, slot, wid) {
   slot.style.zIndex=999;
   function move(ev) {
     var p=ev.touches?ev.touches[0]:ev;
-    var nx=origL+(p.clientX-startX), ny=origT+(p.clientY-startY);
+    var nx=snap(origL+(p.clientX-startX)), ny=snap(origT+(p.clientY-startY));
     if(nx<0) nx=0; if(ny<0) ny=0;
     slot.style.left=nx+'px'; slot.style.top=ny+'px';
     var cont=document.getElementById('dashWidgetContainer');
@@ -9400,7 +9405,6 @@ function wgStartDrag(e, slot, wid) {
     slot.classList.remove('wg-dragging');
     slot.style.zIndex='';
     wgUpdateItem(wid,{x:slot.offsetLeft,y:slot.offsetTop});
-    // Recalc container height
     var cont=document.getElementById('dashWidgetContainer');
     var lay=wgLoadLayout()||[];
     var maxY=0; lay.forEach(function(it){if(it.y+it.h>maxY)maxY=it.y+it.h;});
@@ -9416,7 +9420,7 @@ function wgStartDrag(e, slot, wid) {
   document.addEventListener('touchend',up);
 }
 
-// ── Resize (8 directions) ──
+// ── Resize ──
 function wgStartResize(e, slot, wid, dir) {
   var startX=e.clientX, startY=e.clientY;
   var origL=slot.offsetLeft, origT=slot.offsetTop;
@@ -9426,10 +9430,10 @@ function wgStartResize(e, slot, wid, dir) {
     var p=ev.touches?ev.touches[0]:ev;
     var dx=p.clientX-startX, dy=p.clientY-startY;
     var nx=origL, ny=origT, nw=origW, nh=origH;
-    if(dir.indexOf('e')>-1) nw=Math.max(180,origW+dx);
-    if(dir.indexOf('s')>-1) nh=Math.max(100,origH+dy);
-    if(dir.indexOf('w')>-1){ nw=Math.max(180,origW-dx); nx=origL+origW-nw; }
-    if(dir.indexOf('n')>-1){ nh=Math.max(100,origH-dy); ny=origT+origH-nh; }
+    if(dir.indexOf('e')>-1) nw=snap(Math.max(180,origW+dx));
+    if(dir.indexOf('s')>-1) nh=snap(Math.max(100,origH+dy));
+    if(dir.indexOf('w')>-1){ nw=snap(Math.max(180,origW-dx)); nx=snap(origL+origW-nw); }
+    if(dir.indexOf('n')>-1){ nh=snap(Math.max(100,origH-dy)); ny=snap(origT+origH-nh); }
     slot.style.left=nx+'px'; slot.style.top=ny+'px';
     slot.style.width=nw+'px'; slot.style.height=nh+'px';
     var cont=document.getElementById('dashWidgetContainer');
