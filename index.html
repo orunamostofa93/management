@@ -9645,27 +9645,25 @@ function openWidgetPicker() {
       document.removeEventListener('touchend',  dropGhost);
 
       var cont = document.getElementById('dashWidgetContainer');
-      if(cont) { cont.style.outline=''; }
-      if(!_dragWid || !cont) { _dragWid=null; return; }
+      if(cont) cont.style.outline='';
+      if(!_dragWid) return;
 
-      var r = cont.getBoundingClientRect();
-      var inside = p.clientX>=r.left && p.clientX<=r.right && p.clientY>=r.top && p.clientY<=r.bottom;
+      var lay = wgLoadLayout();
+      if(lay.find(function(x){ return x.wid===_dragWid; })) { _dragWid=null; return; }
 
-      if(inside) {
-        var relX = snap(Math.max(0, p.clientX - r.left - 20));
-        var relY = snap(Math.max(0, p.clientY - r.top + cont.parentElement.scrollTop));
-        var lay = wgLoadLayout();
-        if(!lay.find(function(x){ return x.wid===_dragWid; })) {
-          lay.push({ wid:_dragWid, x:relX, y:relY, w:WG_COL_W, h:WG_COL_H });
-          wgSaveLayout(lay);
-          renderWidgets();
-          var def2 = WG_DEFS[_dragWid];
-          toast((def2?def2.icon+' "'+def2.label+'"':'উইজেট')+' যোগ হয়েছে ✅');
-        }
-      } else {
-        // Dashboard এ না পড়লে শুধু যোগ করো নিচে
-        wgAdd(_dragWid);
+      var x=0, y=0;
+      if(cont) {
+        var r = cont.getBoundingClientRect();
+        var scrollY = window.pageYOffset||document.documentElement.scrollTop||0;
+        x = snap(Math.max(0, p.clientX - r.left - 20));
+        y = snap(Math.max(0, (p.clientY + scrollY) - (r.top + scrollY)));
       }
+
+      lay.push({ wid:_dragWid, x:x, y:y, w:WG_COL_W, h:WG_COL_H });
+      wgSaveLayout(lay);
+      renderWidgets();
+      var def2 = WG_DEFS[_dragWid];
+      toast((def2?def2.icon+' "'+def2.label+'"':'উইজেট')+' যোগ হয়েছে ✅');
       _dragWid = null;
     }
 
