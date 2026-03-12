@@ -449,7 +449,34 @@
   }
   .wg-del-btn:active { background:rgba(200,20,20,.9); }
 
-  /* Widget picker */
+  /* WhatsApp widgets */
+  .wa-flt-btn {
+    background:#f0f0f0; border:1px solid var(--border); border-radius:20px;
+    padding:4px 10px; font-size:11px; cursor:pointer; font-family:inherit;
+    font-weight:600; color:var(--text); transition:.15s;
+  }
+  .wa-flt-btn:hover { background:#e0f5ea; border-color:var(--primary); }
+  .wa-flt-btn.wa-flt-active { background:#25d366; color:#fff; border-color:#25d366; }
+  .wa-tpl-btn {
+    background:#f8f8f8; border:1px solid var(--border); border-radius:8px;
+    padding:8px 10px; font-size:12px; cursor:pointer; font-family:inherit;
+    text-align:left; color:var(--text); transition:.15s; line-height:1.4;
+  }
+  .wa-tpl-btn:hover { background:#e0f5ea; border-color:#25d366; }
+  .wa-tpl-btn.active { background:#e0f5ea; border-color:#25d366; font-weight:700; }
+  .wa-contact-row {
+    display:flex; align-items:center; gap:8px; padding:6px 8px;
+    background:#f8f8f8; border-radius:8px; font-size:12px;
+  }
+  .wa-contact-row .wa-name { flex:1; font-weight:600; color:var(--text); }
+  .wa-contact-row .wa-role { font-size:10px; color:var(--text-muted); }
+  .wa-send-btn {
+    background:#25d366; color:#fff; border:none; border-radius:6px;
+    padding:4px 10px; font-size:12px; cursor:pointer; font-family:inherit;
+    white-space:nowrap; text-decoration:none; display:inline-flex;
+    align-items:center; gap:3px;
+  }
+  .wa-send-btn:hover { background:#128c7e; }
   .wg-picker-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(130px,1fr)); gap:10px; margin-top:12px; }
   .wg-picker-item { border:2px solid var(--border); border-radius:10px; padding:12px 8px; text-align:center; cursor:pointer; transition:.15s; background:#fff; }
   .wg-picker-item:active:not(.wg-used),.wg-picker-item:hover:not(.wg-used) { border-color:var(--primary); background:var(--primary-ultra-light); transform:translateY(-2px); }
@@ -9264,6 +9291,39 @@ var WG_DEFS = {
     +'<div class="card-body" id="todayAbsentList"><p style="color:var(--text-muted);text-align:center;font-size:13px;">হাজিরা নেওয়ার পর এখানে দেখা যাবে।</p></div>'
     +'</div>'); }
   },
+
+  wa_template: { label:'WhatsApp টেমপ্লেট', icon:'📋', render: function(){ return (
+    '<div class="card" style="height:100%;display:flex;flex-direction:column;">'
+    +'<div class="card-header"><span class="card-title">📋 WhatsApp টেমপ্লেট</span></div>'
+    +'<div class="card-body" style="display:flex;flex-direction:column;gap:10px;overflow-y:auto;padding:12px;">'
+      // Filter
+      +'<div style="display:flex;gap:6px;flex-wrap:wrap;">'
+        +'<button onclick="waSetFilter(\'all\')" id="waFlt_all" class="wa-flt-btn wa-flt-active">👥 সবাই</button>'
+        +'<button onclick="waSetFilter(\'parent\')" id="waFlt_parent" class="wa-flt-btn">👨‍👩‍👦 অভিভাবক</button>'
+        +'<button onclick="waSetFilter(\'teacher\')" id="waFlt_teacher" class="wa-flt-btn">👨‍🏫 শিক্ষক</button>'
+        +'<button onclick="waSetFilter(\'staff\')" id="waFlt_staff" class="wa-flt-btn">🧑‍💼 স্টাফ</button>'
+        +'<button onclick="waSetFilter(\'mgmt\')" id="waFlt_mgmt" class="wa-flt-btn">🏛️ ম্যানেজমেন্ট</button>'
+      +'</div>'
+      // Templates
+      +'<div style="font-size:12px;font-weight:700;color:var(--text-muted);">টেমপ্লেট বেছে নিন:</div>'
+      +'<div id="waTemplateList" style="display:flex;flex-direction:column;gap:6px;"></div>'
+      // Custom message
+      +'<div style="font-size:12px;font-weight:700;color:var(--text-muted);margin-top:4px;">অথবা নিজে লিখুন:</div>'
+      +'<textarea id="waCustomMsg" rows="3" placeholder="এখানে মেসেজ লিখুন..." style="width:100%;padding:8px;border:1px solid var(--border);border-radius:8px;font-family:inherit;font-size:13px;resize:vertical;box-sizing:border-box;"></textarea>'
+      +'<button onclick="waOpenAll()" style="background:linear-gradient(135deg,#25d366,#128c7e);color:#fff;border:none;border-radius:8px;padding:9px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:6px;">📤 সবাইকে পাঠান <span id="waRecipCount" style="background:rgba(255,255,255,.25);border-radius:10px;padding:1px 8px;font-size:12px;"></span></button>'
+      +'<div id="waContactList" style="display:flex;flex-direction:column;gap:5px;max-height:220px;overflow-y:auto;"></div>'
+    +'</div></div>'); }
+  },
+
+  wa_quick: { label:'WhatsApp Quick Send', icon:'💬', render: function(){ return (
+    '<div class="card" style="height:100%;display:flex;flex-direction:column;">'
+    +'<div class="card-header"><span class="card-title">💬 WhatsApp Quick Send</span></div>'
+    +'<div class="card-body" style="display:flex;flex-direction:column;gap:10px;padding:12px;">'
+      +'<input id="waQuickSearch" oninput="waQuickSearch()" placeholder="🔍 নাম বা নম্বর খুঁজুন..." style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-family:inherit;font-size:13px;box-sizing:border-box;">'
+      +'<div id="waQuickResults" style="display:flex;flex-direction:column;gap:5px;max-height:180px;overflow-y:auto;"></div>'
+      +'<textarea id="waQuickMsg" rows="3" placeholder="মেসেজ লিখুন..." style="width:100%;padding:8px;border:1px solid var(--border);border-radius:8px;font-family:inherit;font-size:13px;resize:vertical;box-sizing:border-box;"></textarea>'
+    +'</div></div>'); }
+  },
 };
 
 // Layout stored as [{wid:'att_donut', cols:1}, ...]
@@ -9272,7 +9332,8 @@ var WG_DEFS = {
 var WG_DEFAULT = [
   'att_donut','fee_bar','class_bar','birthday','pending_leave',
   'today_summary','quick_actions','notices',
-  'top_students','top_teachers','pending_payments','absent_list'
+  'top_students','top_teachers','pending_payments','absent_list',
+  'wa_template','wa_quick'
 ];
 
 // Default positions: auto-flow left-to-right, 3 per row
@@ -9530,6 +9591,190 @@ function openWidgetPicker() {
   document.body.appendChild(m);
 }
 
+// ═══════════════════════════════════════════
+// WhatsApp Widget Logic
+// ═══════════════════════════════════════════
+
+var WA_TEMPLATES = [
+  { label:'📅 ফি বাকি রিমাইন্ডার', text:'আস-সালামু আলাইকুম। আশা করি ভালো আছেন। জানাতে চাচ্ছি যে এই মাসের মাদ্রাসার বেতন এখনো পরিশোধ হয়নি। অনুগ্রহ করে দ্রুত পরিশোধ করুন। জাযাকাল্লাহু খাইরান।' },
+  { label:'📢 পরীক্ষার নোটিশ', text:'আস-সালামু আলাইকুম। আগামীকাল মাদ্রাসায় পরীক্ষা অনুষ্ঠিত হবে। আপনার সন্তানকে প্রস্তুত করে পাঠান। সময়মতো উপস্থিত থাকতে হবে। জাযাকাল্লাহু খাইরান।' },
+  { label:'🏫 ছুটির নোটিশ', text:'আস-সালামু আলাইকুম। আগামীকাল মাদ্রাসা বন্ধ থাকবে। পরবর্তী নির্দেশনা না দেওয়া পর্যন্ত অপেক্ষা করুন। জাযাকাল্লাহু খাইরান।' },
+  { label:'✅ মিটিং আমন্ত্রণ', text:'আস-সালামু আলাইকুম। আগামী শুক্রবার মাদ্রাসায় অভিভাবক সভা অনুষ্ঠিত হবে। আপনার উপস্থিতি একান্ত কাম্য। জাযাকাল্লাহু খাইরান।' },
+  { label:'📖 বার্ষিক পরীক্ষা', text:'আস-সালামু আলাইকুম। আগামী সপ্তাহ থেকে বার্ষিক পরীক্ষা শুরু হবে। রুটিন মাদ্রাসা থেকে সংগ্রহ করুন। আপনার সন্তানকে ভালোভাবে প্রস্তুত করুন। জাযাকাল্লাহু খাইরান।' },
+  { label:'🌙 ঈদের শুভেচ্ছা', text:'আস-সালামু আলাইকুম। ঈদ মোবারক! আপনাদের ও পরিবারের সকলের জন্য ঈদুল ফিতর আনন্দময় ও বরকতময় হোক। An Nazah Tahfizul Quran Madrasa পরিবারের পক্ষ থেকে শুভেচ্ছা।' },
+];
+
+var _waFilter = 'all';
+var _waSelectedTpl = -1;
+
+function waSetFilter(filter) {
+  _waFilter = filter;
+  document.querySelectorAll('.wa-flt-btn').forEach(function(b){ b.classList.remove('wa-flt-active'); });
+  var btn = document.getElementById('waFlt_'+filter);
+  if(btn) btn.classList.add('wa-flt-active');
+  waRenderContacts();
+}
+
+function waGetContacts() {
+  var contacts = [];
+  var d = data || {};
+
+  if(_waFilter === 'all' || _waFilter === 'parent') {
+    // Parents from students
+    (d.students ? Object.values(d.students) : []).forEach(function(s) {
+      if(!s || s.status === 'inactive') return;
+      var phone = s.parentPhone || s.phone || '';
+      if(phone) contacts.push({ name: (s.parentName||s.name||'অভিভাবক'), phone: phone, role: 'অভিভাবক', sub: s.name });
+    });
+  }
+  if(_waFilter === 'all' || _waFilter === 'teacher') {
+    (d.teachers ? Object.values(d.teachers) : []).forEach(function(t) {
+      if(!t || t.status === 'inactive') return;
+      var phone = t.phone || '';
+      if(phone) contacts.push({ name: t.name||'শিক্ষক', phone: phone, role: 'শিক্ষক' });
+    });
+  }
+  if(_waFilter === 'all' || _waFilter === 'staff') {
+    (d.staff ? Object.values(d.staff) : []).forEach(function(s) {
+      if(!s) return;
+      var phone = s.phone || '';
+      if(phone) contacts.push({ name: s.name||'স্টাফ', phone: phone, role: 'স্টাফ' });
+    });
+  }
+  if(_waFilter === 'all' || _waFilter === 'mgmt') {
+    (d.users ? Object.values(d.users) : []).forEach(function(u) {
+      if(!u) return;
+      var phone = u.phone || '';
+      if(phone) contacts.push({ name: u.name||u.id||'ম্যানেজমেন্ট', phone: phone, role: 'ম্যানেজমেন্ট' });
+    });
+  }
+  // deduplicate by phone
+  var seen = {};
+  return contacts.filter(function(c){
+    var p = c.phone.replace(/\D/g,'');
+    if(seen[p]) return false;
+    seen[p] = true; return true;
+  });
+}
+
+function waFormatPhone(phone) {
+  var p = phone.replace(/\D/g,'');
+  if(p.startsWith('0')) p = '88'+p;
+  if(!p.startsWith('88')) p = '88'+p;
+  return p;
+}
+
+function waGetMsg() {
+  var msg = document.getElementById('waCustomMsg');
+  return msg ? msg.value.trim() : '';
+}
+
+function waRenderTemplates() {
+  var list = document.getElementById('waTemplateList');
+  if(!list) return;
+  list.innerHTML = WA_TEMPLATES.map(function(t,i){
+    return '<button class="wa-tpl-btn'+(i===_waSelectedTpl?' active':'')+'" onclick="waSelectTpl('+i+')">'
+      +t.label+'<div style="font-size:10px;color:#666;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+t.text.substring(0,60)+'...</div>'
+      +'</button>';
+  }).join('');
+}
+
+function waSelectTpl(i) {
+  _waSelectedTpl = i;
+  var msg = document.getElementById('waCustomMsg');
+  if(msg) msg.value = WA_TEMPLATES[i].text;
+  waRenderTemplates();
+  waRenderContacts();
+}
+
+function waRenderContacts() {
+  var contacts = waGetContacts();
+  var listEl = document.getElementById('waContactList');
+  var countEl = document.getElementById('waRecipCount');
+  if(countEl) countEl.textContent = contacts.length + ' জন';
+  if(!listEl) return;
+
+  if(contacts.length === 0) {
+    listEl.innerHTML = '<p style="color:var(--text-muted);font-size:12px;text-align:center;">কোনো নম্বর পাওয়া যায়নি।</p>';
+    return;
+  }
+  var msg = waGetMsg();
+  listEl.innerHTML = contacts.map(function(c){
+    var phone = waFormatPhone(c.phone);
+    var url = 'https://wa.me/'+phone+(msg?'?text='+encodeURIComponent(msg):'');
+    return '<div class="wa-contact-row">'
+      +'<div><div class="wa-name">'+c.name+'</div>'
+      +(c.sub?'<div class="wa-role">সন্তান: '+c.sub+'</div>':'')+
+      '<div class="wa-role">'+c.role+' · '+c.phone+'</div></div>'
+      +'<a href="'+url+'" target="_blank" class="wa-send-btn">💬 পাঠান</a>'
+      +'</div>';
+  }).join('');
+}
+
+function waOpenAll() {
+  var contacts = waGetContacts();
+  var msg = waGetMsg();
+  if(!msg) { toast('⚠️ আগে মেসেজ লিখুন বা টেমপ্লেট বেছে নিন'); return; }
+  if(contacts.length === 0) { toast('কোনো নম্বর পাওয়া যায়নি'); return; }
+  if(contacts.length > 10 && !confirm(contacts.length+' জনকে মেসেজ পাঠাবেন? প্রতিটি আলাদাভাবে খুলবে।')) return;
+  contacts.forEach(function(c, i) {
+    var phone = waFormatPhone(c.phone);
+    var url = 'https://wa.me/'+phone+'?text='+encodeURIComponent(msg);
+    setTimeout(function(){ window.open(url,'_blank'); }, i*400);
+  });
+}
+
+function waInitWidget() {
+  waRenderTemplates();
+  waRenderContacts();
+  // Live update contact list on msg change
+  var msgEl = document.getElementById('waCustomMsg');
+  if(msgEl) msgEl.addEventListener('input', function(){ waRenderContacts(); });
+}
+
+// Quick send widget
+function waQuickSearch() {
+  var q = (document.getElementById('waQuickSearch')||{}).value||'';
+  q = q.trim().toLowerCase();
+  var results = document.getElementById('waQuickResults');
+  if(!results) return;
+  if(!q) { results.innerHTML = ''; return; }
+
+  var all = [];
+  var d = data || {};
+  (d.students?Object.values(d.students):[]).forEach(function(s){
+    if(!s) return;
+    var phone = s.parentPhone||s.phone||'';
+    if(phone) all.push({name:(s.parentName||s.name), sub:s.name, phone:phone, role:'অভিভাবক'});
+  });
+  (d.teachers?Object.values(d.teachers):[]).forEach(function(t){
+    if(!t||!t.phone) return;
+    all.push({name:t.name, phone:t.phone, role:'শিক্ষক'});
+  });
+
+  var filtered = all.filter(function(c){
+    return (c.name||'').toLowerCase().includes(q) || (c.phone||'').includes(q) || (c.sub||'').toLowerCase().includes(q);
+  }).slice(0,8);
+
+  if(!filtered.length){ results.innerHTML='<p style="color:var(--text-muted);font-size:12px;text-align:center;">কিছু পাওয়া যায়নি</p>'; return; }
+
+  results.innerHTML = filtered.map(function(c){
+    return '<div class="wa-contact-row" onclick="waQuickPick(\''+c.phone+'\')" style="cursor:pointer;">'
+      +'<div><div class="wa-name">'+c.name+'</div>'
+      +(c.sub?'<div class="wa-role">সন্তান: '+c.sub+'</div>':'')+
+      '<div class="wa-role">'+c.role+' · '+c.phone+'</div></div>'
+      +'<span style="font-size:18px;">📲</span>'
+      +'</div>';
+  }).join('');
+}
+
+function waQuickPick(phone) {
+  var msg = (document.getElementById('waQuickMsg')||{}).value||'';
+  var p = waFormatPhone(phone);
+  var url = 'https://wa.me/'+p+(msg?'?text='+encodeURIComponent(msg):'');
+  window.open(url,'_blank');
+}
+
 // ---- renderDashboardData: fill all widget data ----
 function renderDashboardData() {
   var today = new Date().toISOString().split('T')[0];
@@ -9593,6 +9838,8 @@ function renderDashboardData() {
   renderTopTeachers();
   renderPendingPayments();
   renderTodayAbsent();
+  // WhatsApp widgets
+  setTimeout(function(){ waInitWidget(); waQuickSearch(); }, 50);
 }
 
 
@@ -9684,6 +9931,7 @@ var _fns = {
   approveLeaveTeacher, approveLeaveManagement, rejectLeave, renderTodayAbsent,
   verifyBirthReg, teacherApproveLeave, teacherRejectLeave, renderTeacherLeaveApproval,
   dashEditMode, resetWidgetLayout, openWidgetPicker, wgRemove, wgAdd,
+  waSetFilter, waOpenAll, waSelectTpl, waQuickSearch, waQuickPick,
 };
 Object.entries(_fns).forEach(([k,v]) => { if(typeof v === 'function') window[k] = v; });
 </script>
