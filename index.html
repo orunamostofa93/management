@@ -7,8 +7,6 @@
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+Bengali:wght@400;600;700&family=Noto+Sans+Bengali:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <!-- Firebase Compat SDK -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/web-animations/2.3.2/web-animations.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/muuri/0.9.5/muuri.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 <style>
@@ -367,45 +365,28 @@
   #dashWidgetToolbar.active { display:flex !important; }
   #dashEditBtn { display:flex; }
 
-  /* Muuri free grid container */
+  /* Absolute free canvas */
   #dashWidgetContainer {
     position:relative;
     width:100%;
+    min-height:400px;
   }
 
-  /* Each widget — Muuri positions these absolutely */
+  /* Each widget: absolutely positioned */
   .wg-slot {
     position:absolute;
-    width:calc(33.333% - 10px); /* default: ~3 per row */
     box-sizing:border-box;
     border-radius:12px;
     z-index:1;
+    transition:box-shadow .15s;
+    overflow:visible;
   }
-  /* width presets */
-  .wg-slot.wg-w1 { width:calc(25% - 11px); }
-  .wg-slot.wg-w2 { width:calc(33.333% - 10px); }
-  .wg-slot.wg-w3 { width:calc(50% - 9px); }
-  .wg-slot.wg-w4 { width:calc(66.666% - 7px); }
-  .wg-slot.wg-w5 { width:calc(75% - 6px); }
-  .wg-slot.wg-w6 { width:calc(100%); }
-
-  @media(max-width:900px){
-    .wg-slot,.wg-slot.wg-w1,.wg-slot.wg-w2,.wg-slot.wg-w3,
-    .wg-slot.wg-w4,.wg-slot.wg-w5 { width:calc(50% - 7px); }
-    .wg-slot.wg-w6 { width:100%; }
+  .wg-slot > .card {
+    width:100%; height:100%;
+    box-sizing:border-box;
+    overflow:hidden;
+    margin:0;
   }
-  @media(max-width:600px){
-    .wg-slot,.wg-slot.wg-w1,.wg-slot.wg-w2,.wg-slot.wg-w3,
-    .wg-slot.wg-w4,.wg-slot.wg-w5,.wg-slot.wg-w6 { width:100%; }
-  }
-
-  .wg-slot > .card { overflow:hidden; min-height:80px; height:100%; box-sizing:border-box; }
-
-  /* Muuri drag states */
-  .wg-slot.muuri-item-dragging { z-index:100 !important; opacity:.9; transform:rotate(.5deg) scale(1.03); box-shadow:0 16px 48px rgba(0,0,0,.28) !important; }
-  .wg-slot.muuri-item-releasing { z-index:50; }
-  .wg-slot.muuri-item-hidden { z-index:0; opacity:0; }
-  .muuri-item-placeholder { border:3px dashed var(--primary); border-radius:12px; background:var(--primary-ultra-light); opacity:.5; }
 
   /* Edit mode */
   .dash-edit-mode .wg-slot > .card {
@@ -416,33 +397,57 @@
     cursor:grab !important;
     background:linear-gradient(90deg, var(--primary), var(--primary-light)) !important;
     border-radius:10px 10px 0 0;
-    user-select:none; gap:6px;
+    user-select:none;
+    gap:6px;
   }
   .dash-edit-mode .wg-slot .card-header:active { cursor:grabbing !important; }
   .dash-edit-mode .wg-slot .card-header::before {
-    content:'⠿⠿'; font-size:14px; color:rgba(255,255,255,.75); flex-shrink:0;
+    content:'⠿⠿'; font-size:14px; color:rgba(255,255,255,.7); flex-shrink:0;
   }
   .dash-edit-mode .wg-slot .card-title { color:#fff !important; }
-  .dash-edit-mode .wg-slot .card-header span:not(.card-title) { color:rgba(255,255,255,.8) !important; }
+  .dash-edit-mode .wg-slot .card-header span:not(.card-title) { color:rgba(255,255,255,.75) !important; }
 
-  /* Width cycle button */
-  .wg-width-btn {
-    background:rgba(255,255,255,.2); border:1px solid rgba(255,255,255,.4);
-    color:#fff !important; border-radius:5px; padding:2px 7px;
-    font-size:10px; cursor:pointer !important; font-family:inherit;
-    font-weight:700; white-space:nowrap; flex-shrink:0;
+  /* Drag state */
+  .wg-slot.wg-dragging {
+    z-index:999 !important;
+    opacity:.92;
+    box-shadow:0 20px 60px rgba(0,0,0,.3) !important;
+    transform:rotate(.5deg) scale(1.02);
+    cursor:grabbing !important;
   }
-  .wg-width-btn:active { background:rgba(255,255,255,.45); }
+
+  /* 8-direction resize handles — only in edit mode */
+  .wg-rh {
+    display:none;
+    position:absolute;
+    z-index:30;
+    background:var(--primary);
+    opacity:0;
+    transition:opacity .15s;
+  }
+  .dash-edit-mode .wg-slot:hover .wg-rh,
+  .dash-edit-mode .wg-slot .wg-rh { display:block; opacity:1; }
+
+  /* Edge handles */
+  .wg-rh-e  { top:20%; bottom:20%; right:-4px; width:8px; border-radius:4px; }
+  .wg-rh-w  { top:20%; bottom:20%; left:-4px;  width:8px; border-radius:4px; }
+  .wg-rh-s  { left:20%; right:20%; bottom:-4px; height:8px; border-radius:4px; }
+  .wg-rh-n  { left:20%; right:20%; top:-4px;    height:8px; border-radius:4px; }
+
+  /* Corner handles */
+  .wg-rh-se { right:-5px; bottom:-5px; width:14px; height:14px; border-radius:3px; }
+  .wg-rh-sw { left:-5px;  bottom:-5px; width:14px; height:14px; border-radius:3px; }
+  .wg-rh-ne { right:-5px; top:-5px;    width:14px; height:14px; border-radius:3px; }
+  .wg-rh-nw { left:-5px;  top:-5px;    width:14px; height:14px; border-radius:3px; }
+
+  /* Delete button */
   .wg-del-btn {
     background:rgba(220,40,40,.5); border:1px solid rgba(255,255,255,.4);
-    color:#fff !important; border-radius:5px; padding:2px 7px;
-    font-size:10px; cursor:pointer !important; font-family:inherit;
-    font-weight:700; white-space:nowrap; flex-shrink:0;
+    color:#fff !important; border-radius:5px; padding:2px 8px;
+    font-size:11px; cursor:pointer !important; font-family:inherit;
+    font-weight:700; white-space:nowrap; flex-shrink:0; margin-left:auto;
   }
   .wg-del-btn:active { background:rgba(200,20,20,.9); }
-
-  /* Resize mode */
-  .wg-resize-mode .wg-slot > .card { overflow:auto; resize:both; border:2px dashed var(--primary) !important; }
 
   /* Widget picker */
   .wg-picker-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(130px,1fr)); gap:10px; margin-top:12px; }
@@ -584,12 +589,9 @@
       <div id="dashWidgetToolbar" style="background:linear-gradient(135deg,var(--primary),var(--primary-light));border-radius:10px;padding:10px 16px;margin-bottom:14px;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;">
         <div style="color:#fff;font-weight:700;font-size:13px;display:flex;align-items:center;gap:8px;">
           ✏️ ড্যাশবোর্ড সম্পাদনা
-          <span style="font-size:11px;font-weight:400;opacity:.8;">▲▼ সাজান &nbsp;·&nbsp; + যোগ করুন &nbsp;·&nbsp; ✕ বাদ দিন</span>
+          <span style="font-size:11px;font-weight:400;opacity:.8;">🟢 header ধরে সরান &nbsp;·&nbsp; ⇲ কোণা ধরে ছোট-বড় করুন</span>
         </div>
         <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
-          <button id="wgResizeBtn" onclick="toggleWidgetResize()" style="background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.35);border-radius:6px;padding:5px 11px;font-size:12px;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:5px;">
-            ↔ রিসাইজ উইজেট
-          </button>
           <button onclick="resetWidgetLayout()" style="background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.35);border-radius:6px;padding:5px 11px;font-size:12px;cursor:pointer;font-family:inherit;">↺ ডিফল্ট</button>
           <button onclick="openWidgetPicker()" style="background:rgba(255,255,255,.2);color:#fff;border:1px solid rgba(255,255,255,.4);border-radius:6px;padding:5px 12px;font-size:12px;cursor:pointer;font-family:inherit;">+ উইজেট যোগ</button>
           <button onclick="dashEditMode(false)" style="background:#fff;color:var(--primary);border:none;border-radius:6px;padding:5px 14px;font-size:12px;cursor:pointer;font-weight:700;font-family:inherit;">✅ সম্পন্ন</button>
@@ -9265,107 +9267,194 @@ var WG_DEFS = {
 };
 
 // Layout stored as [{wid:'att_donut', cols:1}, ...]
-var WG_W_LABELS = {'wg-w1':'25%','wg-w2':'33%','wg-w3':'50%','wg-w4':'67%','wg-w5':'75%','wg-w6':'100%'};
-var WG_W_ORDER  = ['wg-w1','wg-w2','wg-w3','wg-w4','wg-w5','wg-w6'];
 
+// ── Widget layout: {wid, x, y, w, h} — all in px, saved per widget ──
 var WG_DEFAULT = [
-  {wid:'att_donut',w:'wg-w3'},{wid:'fee_bar',w:'wg-w3'},
-  {wid:'class_bar',w:'wg-w3'},{wid:'birthday',w:'wg-w3'},
-  {wid:'pending_leave',w:'wg-w3'},{wid:'today_summary',w:'wg-w3'},
-  {wid:'quick_actions',w:'wg-w6'},{wid:'notices',w:'wg-w3'},
-  {wid:'top_students',w:'wg-w3'},{wid:'top_teachers',w:'wg-w3'},
-  {wid:'pending_payments',w:'wg-w6'},{wid:'absent_list',w:'wg-w6'}
+  'att_donut','fee_bar','class_bar','birthday','pending_leave',
+  'today_summary','quick_actions','notices',
+  'top_students','top_teachers','pending_payments','absent_list'
 ];
 
+// Default positions: auto-flow left-to-right, 3 per row
+var WG_GAP = 10;
+
+function wgDefaultPos(idx, containerW) {
+  containerW = containerW || 900;
+  var colW = Math.floor((containerW - WG_GAP*2) / 3);
+  var colH = 240;
+  var col = idx % 3, row = Math.floor(idx / 3);
+  return { x: col*(colW+WG_GAP), y: row*(colH+WG_GAP), w: colW, h: colH };
+}
+
 function wgLoadLayout() {
-  try { var s=localStorage.getItem('mms_wg4'); if(s) return JSON.parse(s); } catch(e){}
-  return WG_DEFAULT.map(function(x){ return {wid:x.wid,w:x.w}; });
+  try { var s=localStorage.getItem('mms_wg5'); if(s) return JSON.parse(s); } catch(e){}
+  return null; // will be built on first render with real container width
 }
 function wgSaveLayout(layout) {
-  try { localStorage.setItem('mms_wg4', JSON.stringify(layout)); } catch(e){}
+  try { localStorage.setItem('mms_wg5', JSON.stringify(layout)); } catch(e){}
+}
+function wgUpdateItem(wid, props) {
+  var lay=wgLoadLayout()||[];
+  var item=lay.find(function(x){return x.wid===wid;});
+  if(!item) return;
+  Object.assign(item, props);
+  wgSaveLayout(lay);
 }
 
-var _muuri = null;
-
+// ── Render ──
 function renderWidgets() {
   var container = document.getElementById('dashWidgetContainer');
   if(!container) return;
-  if(_muuri) { try{_muuri.destroy();}catch(e){} _muuri=null; }
   container.innerHTML = '';
   if(_dashEditMode) container.classList.add('dash-edit-mode');
   else container.classList.remove('dash-edit-mode');
-  if(_wgResizeMode) container.classList.add('wg-resize-mode');
-  else container.classList.remove('wg-resize-mode');
+
+  var cW = container.clientWidth || container.offsetWidth || 900;
 
   var layout = wgLoadLayout();
+  if(!layout) {
+    layout = WG_DEFAULT.map(function(wid,i){
+      var p=wgDefaultPos(i,cW); return {wid:wid,x:p.x,y:p.y,w:p.w,h:p.h};
+    });
+    wgSaveLayout(layout);
+  }
+
+  // Set container height
+  var maxY = 0;
+  layout.forEach(function(item){ if(item.y+item.h > maxY) maxY=item.y+item.h; });
+  container.style.height = (maxY + 30) + 'px';
+
   layout.forEach(function(item) {
-    var wid=item.wid, w=item.w||'wg-w3';
-    var def=WG_DEFS[wid]; if(!def) return;
-    var slot=document.createElement('div');
-    slot.className='wg-slot '+w;
-    slot.dataset.wid=wid; slot.dataset.w=w;
-    var html=def.render();
+    var wid=item.wid, def=WG_DEFS[wid]; if(!def) return;
+
+    var slot = document.createElement('div');
+    slot.className = 'wg-slot';
+    slot.dataset.wid = wid;
+    slot.style.left   = item.x+'px';
+    slot.style.top    = item.y+'px';
+    slot.style.width  = item.w+'px';
+    slot.style.height = item.h+'px';
+
+    var html = def.render();
     if(_dashEditMode) {
-      var wBtn='<button class="wg-width-btn" onclick="event.stopPropagation();wgCycleWidth(\''+wid+'\')">↔ '+WG_W_LABELS[w]+'</button>';
-      var dBtn='<button class="wg-del-btn" onclick="event.stopPropagation();wgRemove(\''+wid+'\')">✕</button>';
+      var dBtn='<button class="wg-del-btn" onclick="event.stopPropagation();wgRemove(\''+wid+'\')">✕ বাদ</button>';
       var hdrEnd=html.indexOf('</div>');
-      if(hdrEnd>-1) html=html.slice(0,hdrEnd)+wBtn+dBtn+html.slice(hdrEnd);
+      if(hdrEnd>-1) html=html.slice(0,hdrEnd)+dBtn+html.slice(hdrEnd);
     }
-    slot.insertAdjacentHTML('beforeend',html);
+    slot.insertAdjacentHTML('beforeend', html);
+
+    if(_dashEditMode) {
+      // Drag by header
+      slot.addEventListener('mousedown', function(e){
+        if(!e.target.closest('.card-header') || e.target.closest('.wg-del-btn')) return;
+        e.preventDefault(); wgStartDrag(e, slot, wid);
+      });
+      slot.addEventListener('touchstart', function(e){
+        if(!e.target.closest('.card-header') || e.target.closest('.wg-del-btn')) return;
+        e.preventDefault(); wgStartDrag(e.touches[0], slot, wid);
+      }, {passive:false});
+
+      // 8-direction resize handles
+      var edges = [
+        {cls:'wg-rh-e',  cur:'e-resize',  dir:'e'},
+        {cls:'wg-rh-w',  cur:'w-resize',  dir:'w'},
+        {cls:'wg-rh-s',  cur:'s-resize',  dir:'s'},
+        {cls:'wg-rh-n',  cur:'n-resize',  dir:'n'},
+        {cls:'wg-rh-se', cur:'se-resize', dir:'se'},
+        {cls:'wg-rh-sw', cur:'sw-resize', dir:'sw'},
+        {cls:'wg-rh-ne', cur:'ne-resize', dir:'ne'},
+        {cls:'wg-rh-nw', cur:'nw-resize', dir:'nw'},
+      ];
+      edges.forEach(function(ed){
+        var rh=document.createElement('div');
+        rh.className='wg-rh '+ed.cls;
+        rh.style.cursor=ed.cur;
+        rh.addEventListener('mousedown',function(e){e.preventDefault();e.stopPropagation();wgStartResize(e,slot,wid,ed.dir);});
+        rh.addEventListener('touchstart',function(e){e.preventDefault();e.stopPropagation();wgStartResize(e.touches[0],slot,wid,ed.dir);},{passive:false});
+        slot.appendChild(rh);
+      });
+    }
+
     container.appendChild(slot);
   });
 
   renderDashboardData();
-  setTimeout(wgRestoreSizes,80);
-
-  if(window.Muuri) {
-    _muuri=new Muuri(container,{
-      items:'.wg-slot',
-      layout:{fillGaps:true},
-      dragEnabled:_dashEditMode,
-      dragHandle:_dashEditMode?'.card-header':null,
-      dragPlaceholder:{
-        enabled:true,
-        createElement:function(){
-          var el=document.createElement('div');
-          el.style.cssText='border:3px dashed #2d7a4f;border-radius:12px;background:rgba(45,122,79,.08);';
-          return el;
-        }
-      },
-      dragStartPredicate:{distance:5,delay:0},
-      dragSortHeuristics:{sortInterval:0}
-    });
-    _muuri.on('dragEnd',function(){
-      var items=_muuri.getItems();
-      var lay=wgLoadLayout();
-      var newLay=items.map(function(itm){
-        var el=itm.getElement();
-        var wid=el.dataset.wid;
-        var ex=lay.find(function(x){return x.wid===wid;});
-        return {wid:wid,w:ex?ex.w:'wg-w3'};
-      });
-      wgSaveLayout(newLay);
-    });
-  }
 }
 
-function wgCycleWidth(wid) {
-  var lay=wgLoadLayout();
-  var item=lay.find(function(x){return x.wid===wid;});
-  if(!item) return;
-  var idx=WG_W_ORDER.indexOf(item.w);
-  item.w=WG_W_ORDER[(idx+1)%WG_W_ORDER.length];
-  wgSaveLayout(lay);
-  renderWidgets();
-  toast('↔ প্রস্থ: '+WG_W_LABELS[item.w]);
+// ── Drag ──
+function wgStartDrag(e, slot, wid) {
+  var startX=e.clientX, startY=e.clientY;
+  var origL=slot.offsetLeft, origT=slot.offsetTop;
+  slot.classList.add('wg-dragging');
+  slot.style.zIndex=999;
+  function move(ev) {
+    var p=ev.touches?ev.touches[0]:ev;
+    var nx=origL+(p.clientX-startX), ny=origT+(p.clientY-startY);
+    if(nx<0) nx=0; if(ny<0) ny=0;
+    slot.style.left=nx+'px'; slot.style.top=ny+'px';
+    var cont=document.getElementById('dashWidgetContainer');
+    var needed=ny+slot.offsetHeight+30;
+    if(parseInt(cont.style.height)<needed) cont.style.height=needed+'px';
+  }
+  function up() {
+    slot.classList.remove('wg-dragging');
+    slot.style.zIndex='';
+    wgUpdateItem(wid,{x:slot.offsetLeft,y:slot.offsetTop});
+    // Recalc container height
+    var cont=document.getElementById('dashWidgetContainer');
+    var lay=wgLoadLayout()||[];
+    var maxY=0; lay.forEach(function(it){if(it.y+it.h>maxY)maxY=it.y+it.h;});
+    cont.style.height=(maxY+30)+'px';
+    document.removeEventListener('mousemove',move);
+    document.removeEventListener('mouseup',up);
+    document.removeEventListener('touchmove',move);
+    document.removeEventListener('touchend',up);
+  }
+  document.addEventListener('mousemove',move);
+  document.addEventListener('mouseup',up);
+  document.addEventListener('touchmove',move,{passive:false});
+  document.addEventListener('touchend',up);
+}
+
+// ── Resize (8 directions) ──
+function wgStartResize(e, slot, wid, dir) {
+  var startX=e.clientX, startY=e.clientY;
+  var origL=slot.offsetLeft, origT=slot.offsetTop;
+  var origW=slot.offsetWidth, origH=slot.offsetHeight;
+  slot.style.zIndex=999;
+  function move(ev) {
+    var p=ev.touches?ev.touches[0]:ev;
+    var dx=p.clientX-startX, dy=p.clientY-startY;
+    var nx=origL, ny=origT, nw=origW, nh=origH;
+    if(dir.indexOf('e')>-1) nw=Math.max(180,origW+dx);
+    if(dir.indexOf('s')>-1) nh=Math.max(100,origH+dy);
+    if(dir.indexOf('w')>-1){ nw=Math.max(180,origW-dx); nx=origL+origW-nw; }
+    if(dir.indexOf('n')>-1){ nh=Math.max(100,origH-dy); ny=origT+origH-nh; }
+    slot.style.left=nx+'px'; slot.style.top=ny+'px';
+    slot.style.width=nw+'px'; slot.style.height=nh+'px';
+    var cont=document.getElementById('dashWidgetContainer');
+    var needed=ny+nh+30;
+    if(parseInt(cont.style.height)<needed) cont.style.height=needed+'px';
+  }
+  function up() {
+    slot.style.zIndex='';
+    wgUpdateItem(wid,{x:slot.offsetLeft,y:slot.offsetTop,w:slot.offsetWidth,h:slot.offsetHeight});
+    document.removeEventListener('mousemove',move);
+    document.removeEventListener('mouseup',up);
+    document.removeEventListener('touchmove',move);
+    document.removeEventListener('touchend',up);
+  }
+  document.addEventListener('mousemove',move);
+  document.addEventListener('mouseup',up);
+  document.addEventListener('touchmove',move,{passive:false});
+  document.addEventListener('touchend',up);
 }
 
 function wgRemove(wid) {
   var lay=wgLoadLayout();
   var i=lay.findIndex(function(x){return x.wid===wid;});
   if(i>-1) lay.splice(i,1);
-  wgSaveLayout(lay);
-  renderWidgets();
+  wgSaveLayout(lay); renderWidgets();
   var def=WG_DEFS[wid];
   toast((def?def.icon+' "'+def.label+'"':'উইজেট')+' বাদ দেওয়া হয়েছে।');
 }
@@ -9373,10 +9462,12 @@ function wgRemove(wid) {
 function wgAdd(wid) {
   var lay=wgLoadLayout();
   if(lay.find(function(x){return x.wid===wid;})) return;
-  lay.push({wid:wid,w:'wg-w3'});
+  // Find a free spot
+  var maxY=0;
+  lay.forEach(function(item){if(item.y+item.h>maxY) maxY=item.y+item.h;});
+  lay.push({wid:wid, x:0, y:maxY+WG_GAP, w:WG_COL_W, h:WG_COL_H});
   wgSaveLayout(lay);
-  var m=document.getElementById('wgPickerModal');
-  if(m) m.remove();
+  var m=document.getElementById('wgPickerModal'); if(m) m.remove();
   renderWidgets();
   var def=WG_DEFS[wid];
   toast((def?def.icon+' "'+def.label+'"':'উইজেট')+' যোগ করা হয়েছে ✅');
@@ -9401,58 +9492,10 @@ function dashEditMode(on) {
   if(!on) toast('ড্যাশবোর্ড সংরক্ষিত ✅');
 }
 
-var _wgResizeMode = false;
-function toggleWidgetResize() {
-  _wgResizeMode = !_wgResizeMode;
-  var c = document.getElementById('dashWidgetContainer');
-  var btn = document.getElementById('wgResizeBtn');
-  if(_wgResizeMode) {
-    c.classList.add('wg-resize-mode');
-    btn.style.background = 'rgba(255,255,255,.45)';
-    btn.style.fontWeight = '700';
-    btn.textContent = '✅ রিসাইজ চালু — প্রান্ত ধরে টানুন';
-    toast('উইজেটের প্রান্ত বা কোণা ধরে টেনে সাইজ পরিবর্তন করুন');
-    // Save sizes on mouseup/touchend inside container
-    c.addEventListener('mouseup', wgSaveSizesOnStop);
-    c.addEventListener('touchend', wgSaveSizesOnStop);
-  } else {
-    c.classList.remove('wg-resize-mode');
-    btn.style.background = 'rgba(255,255,255,.15)';
-    btn.style.fontWeight = '';
-    btn.textContent = '↔ রিসাইজ উইজেট';
-    c.removeEventListener('mouseup', wgSaveSizesOnStop);
-    c.removeEventListener('touchend', wgSaveSizesOnStop);
-  }
-}
-
-function wgSaveSizesOnStop() {
-  var sizes = {};
-  document.querySelectorAll('.wg-slot').forEach(function(slot) {
-    var wid = slot.dataset.wid;
-    var card = slot.querySelector('.card');
-    if(card && card.style.width) sizes[wid+'_w'] = card.style.width;
-    if(card && card.style.height) sizes[wid+'_h'] = card.style.height;
-  });
-  try { localStorage.setItem('mms_wg_sizes', JSON.stringify(sizes)); } catch(e){}
-}
-
-function wgRestoreSizes() {
-  try {
-    var sizes = JSON.parse(localStorage.getItem('mms_wg_sizes')||'{}');
-    document.querySelectorAll('.wg-slot').forEach(function(slot) {
-      var wid = slot.dataset.wid;
-      var card = slot.querySelector('.card');
-      if(!card) return;
-      if(sizes[wid+'_w']) card.style.width = sizes[wid+'_w'];
-      if(sizes[wid+'_h']) card.style.height = sizes[wid+'_h'];
-    });
-  } catch(e){}
-}
 
 function resetWidgetLayout() {
   if(!confirm('ডিফল্ট লেআউটে ফিরে যাবেন?')) return;
-  localStorage.removeItem('mms_wg4');
-  localStorage.removeItem('mms_wg_sizes');
+  localStorage.removeItem('mms_wg5');
   renderWidgets();
   toast('ডিফল্ট লেআউট পুনরুদ্ধার হয়েছে।');
 }
@@ -9636,7 +9679,7 @@ var _fns = {
   filterLeaveStatus, updateLeaveApplicantList, fillLeaveApplicant, checkLeaveAdvanceNotice,
   approveLeaveTeacher, approveLeaveManagement, rejectLeave, renderTodayAbsent,
   verifyBirthReg, teacherApproveLeave, teacherRejectLeave, renderTeacherLeaveApproval,
-  dashEditMode, resetWidgetLayout, openWidgetPicker, wgRemove, wgAdd, toggleWidgetResize, wgCycleWidth,
+  dashEditMode, resetWidgetLayout, openWidgetPicker, wgRemove, wgAdd,
 };
 Object.entries(_fns).forEach(([k,v]) => { if(typeof v === 'function') window[k] = v; });
 </script>
