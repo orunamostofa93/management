@@ -520,6 +520,8 @@
     <div class="nav-item" onclick="showPage('fee')"><span class="nav-icon">💳</span> ফী আদায়</div>
     <div class="nav-item" onclick="showPage('attendance')"><span class="nav-icon">✅</span> উপস্থিতি</div>
     <div class="nav-item" onclick="showPage('results')"><span class="nav-icon">📋</span> পরীক্ষার ফলাফল</div>
+    <div class="nav-item" onclick="showPage('resultsheet')"><span class="nav-icon">📊</span> রেজাল্ট শিট</div>
+    <div class="nav-item" onclick="showPage('diary')"><span class="nav-icon">📓</span> ক্লাস ডায়েরি</div>
     <div class="nav-section">শিক্ষক ও স্টাফ</div>
     <div class="nav-item" onclick="showPage('teachers')"><span class="nav-icon">👨‍🏫</span> শিক্ষক/স্টাফ</div>
     <div class="nav-item" onclick="showPage('payroll')"><span class="nav-icon">💵</span> পেরোল</div>
@@ -1466,7 +1468,13 @@
             <button class="btn btn-primary btn-sm" onclick="addClass()">+ যোগ করুন</button>
           </div>
           <hr class="section-divider">
-          <!-- ছুটি ব্যবস্থাপনা -->
+          <!-- ① শ্রেণিভিত্তিক বিষয় -->
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+            <div class="card-title mb-16" style="margin-bottom:0;">📚 শ্রেণিভিত্তিক বিষয়সমূহ</div>
+            <span style="font-size:11px;color:var(--text-muted);">প্রতিটি শ্রেণির জন্য আলাদা বিষয় তালিকা</span>
+          </div>
+          <div id="subjectPerClassList"></div>
+          <hr class="section-divider">
           <div class="card-title mb-16" style="margin-bottom:12px;">🗓️ ছুটির তালিকা (অফ-ডে)</div>
           <div style="font-size:12px;color:var(--text-muted);margin-bottom:10px;">শুক্রবার ও শনি-বৃহঃ অফ ডে স্বয়ংক্রিয়। নিচে বিশেষ ছুটি (সরকারি/মাদ্রাসার) যোগ করুন।</div>
           <div id="holidayList" style="display:flex;flex-direction:column;gap:6px;margin-bottom:12px;max-height:250px;overflow-y:auto;"></div>
@@ -1548,10 +1556,106 @@
 
     </div>
 
+
+    <!-- ======================== DIARY PAGE ======================== -->
+    <div id="page-diary" class="page">
+      <div class="card">
+        <div class="card-header" style="flex-wrap:wrap;gap:10px;">
+          <span class="card-title">📓 ক্লাস ডায়েরি</span>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+            <select id="diaryFilterCls" onchange="renderDiary()" style="padding:6px 10px;border:1px solid var(--border);border-radius:8px;font-family:inherit;font-size:13px;">
+              <option value="">সব শ্রেণি</option>
+            </select>
+            <select id="diaryFilterSubject" onchange="renderDiary()" style="padding:6px 10px;border:1px solid var(--border);border-radius:8px;font-family:inherit;font-size:13px;">
+              <option value="">সব বিষয়</option>
+            </select>
+            <input type="date" id="diaryFilterDate" onchange="renderDiary()" style="padding:6px 10px;border:1px solid var(--border);border-radius:8px;font-family:inherit;font-size:13px;">
+            <button class="btn btn-primary btn-sm" onclick="openDiaryModal()">+ এন্ট্রি যোগ</button>
+          </div>
+        </div>
+        <div class="card-body" id="diaryList">
+          <p style="color:var(--text-muted);text-align:center;">কোনো এন্ট্রি নেই।</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ======================== RESULT SHEET PAGE ======================== -->
+    <div id="page-resultsheet" class="page">
+      <div class="card">
+        <div class="card-header" style="flex-wrap:wrap;gap:10px;">
+          <span class="card-title">📊 শিক্ষার্থী রেজাল্ট শিট</span>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+            <select id="rsFilterCls" onchange="rsFilterStudents()" style="padding:6px 10px;border:1px solid var(--border);border-radius:8px;font-family:inherit;font-size:13px;">
+              <option value="">শ্রেণি বেছে নিন</option>
+            </select>
+            <input type="text" id="rsSearchInput" oninput="rsFilterStudents()" placeholder="🔍 নাম / রোল..." style="padding:6px 10px;border:1px solid var(--border);border-radius:8px;font-family:inherit;font-size:13px;width:160px;">
+          </div>
+        </div>
+        <div class="card-body">
+          <div id="rsStudentGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;"></div>
+        </div>
+      </div>
+    </div>
+
   </div><!-- /content -->
 </div><!-- /main -->
 
-<!-- MODALS -->
+<!-- DIARY MODAL -->
+<div id="diaryModal" class="modal-overlay">
+  <div class="modal" style="max-width:520px;">
+    <div class="modal-header">
+      <span class="modal-title">📓 ডায়েরি এন্ট্রি</span>
+      <button class="modal-close" onclick="closeModal('diaryModal')">✕</button>
+    </div>
+    <div class="modal-body" style="display:flex;flex-direction:column;gap:12px;">
+      <input type="hidden" id="diaryEditId">
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">তারিখ *</label>
+          <input type="date" id="diaryDate" class="form-control">
+        </div>
+        <div class="form-group">
+          <label class="form-label">শ্রেণি *</label>
+          <select id="diaryCls" class="form-control" onchange="diaryLoadSubjects()">
+            <option value="">বেছে নিন</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">বিষয় *</label>
+        <select id="diarySubject" class="form-control">
+          <option value="">আগে শ্রেণি বেছে নিন</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">আজকের পড়া / পাঠ্যক্রম *</label>
+        <textarea id="diaryLesson" class="form-control" rows="3" placeholder="যেমন: বাংলা ব্যাকরণ — সন্ধি বিচ্ছেদ, পৃষ্ঠা ৪৫-৪৭"></textarea>
+      </div>
+      <div class="form-group">
+        <label class="form-label">বাড়ির কাজ (ঐচ্ছিক)</label>
+        <textarea id="diaryHomework" class="form-control" rows="2" placeholder="যেমন: সন্ধি বিচ্ছেদ — ১০টি উদাহরণ লিখে আনো"></textarea>
+      </div>
+      <div class="btn-group">
+        <button class="btn btn-primary" onclick="saveDiaryEntry()">💾 সংরক্ষণ</button>
+        <button class="btn btn-outline" onclick="closeModal('diaryModal')">বাতিল</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- RESULT SHEET MODAL (per student) -->
+<div id="resultSheetModal" class="modal-overlay">
+  <div class="modal" style="max-width:860px;width:95vw;">
+    <div class="modal-header">
+      <span class="modal-title" id="rsModalTitle">📊 রেজাল্ট শিট</span>
+      <div style="display:flex;gap:6px;">
+        <button class="btn btn-outline btn-sm" onclick="printResultSheetModal()">🖨️ প্রিন্ট</button>
+        <button class="modal-close" onclick="closeModal('resultSheetModal')">✕</button>
+      </div>
+    </div>
+    <div class="modal-body" id="resultSheetBody" style="overflow-x:auto;"></div>
+  </div>
+</div>
 <!-- Add Student Modal -->
 <div id="addStudentModal" class="modal-overlay">
   <div class="modal">
@@ -2367,6 +2471,9 @@ var data = {
   leaves: [], routine: [], syllabus: [],
   feePayments: [], staffCheckins: [], payrollAdj: [], stock: [], letters: [], onlinePayments: [],
   studentRemarks: [], hostelRooms: [], hostelAssignments: [], hostelMealRoutine: {}, hostelFees: [], hostelLeaves: [], hostelMealCosts: [],
+  subjects: {},   // {className: ['বাংলা','আরবি',...]}
+  diary: [],      // [{id,date,cls,subject,teacherId,lesson,homework,createdAt}]
+  examResults: {},// {studentId: {examKey: {subjectName: marks}}}
 };
 
 // পুরনো রেকর্ডে ইউনিক কোড না থাকলে assign করো
@@ -2417,7 +2524,7 @@ function migrateOldCodes() {
 // Firebase থেকে ডেটা লোড করুন
 async function loadFromFirebase() {
   showLoading(true);
-  const keys = ['settings','students','teachers','attendance','results','finance','notices','leaves','routine','syllabus','feePayments','staffCheckins','payrollAdj','stock','letters','onlinePayments','studentRemarks','hostelRooms','hostelAssignments','hostelMealRoutine','hostelFees','hostelLeaves','hostelMealCosts'];
+  const keys = ['settings','students','teachers','attendance','results','finance','notices','leaves','routine','syllabus','feePayments','staffCheckins','payrollAdj','stock','letters','onlinePayments','studentRemarks','hostelRooms','hostelAssignments','hostelMealRoutine','hostelFees','hostelLeaves','hostelMealCosts','subjects','diary','examResults'];
   for(const k of keys) {
     try {
       const snap = await db.collection('madrasa').doc(k).get();
@@ -2541,7 +2648,8 @@ var pageTitles = {
   dashboard:'ড্যাশবোর্ড', students:'শিক্ষার্থী ব্যবস্থাপনা', attendance:'উপস্থিতি',
   results:'পরীক্ষার ফলাফল', teachers:'শিক্ষক ও স্টাফ', leave:'ছুটির আবেদন',
   routine:'ক্লাস রুটিন', syllabus:'সিলেবাস', exampaper:'প্রশ্নপত্র তৈরি',
-  finance:'আয়-ব্যয় হিসাব', notice:'বিজ্ঞপ্তি', letters:'📜 পত্র ও প্রমাণপত্র', idcard:'আইডি কার্ড', settings:'সেটিংস', payroll:'💵 পে-রোল', stock:'📦 মালামাল স্টক', fee:'💳 ফী আদায়', remarks:'💬 শিক্ষার্থী মন্তব্য অনুমোদন'
+  finance:'আয়-ব্যয় হিসাব', notice:'বিজ্ঞপ্তি', letters:'📜 পত্র ও প্রমাণপত্র', idcard:'আইডি কার্ড', settings:'সেটিংস', payroll:'💵 পে-রোল', stock:'📦 মালামাল স্টক', fee:'💳 ফী আদায়', remarks:'💬 শিক্ষার্থী মন্তব্য অনুমোদন',
+  diary:'📓 ক্লাস ডায়েরি', resultsheet:'📊 শিক্ষার্থী রেজাল্ট শিট'
 };
 function showPage(id) {
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
@@ -2571,6 +2679,8 @@ function showPage(id) {
   if(id==='idcard') populateIDDropdown();
   if(id==='settings') { loadSettings(); setTimeout(function(){ switchPermTab('users'); }, 100); }
   if(id==='remarks') renderRemarksApproval();
+  if(id==='diary') { diaryPopulateFilters(); renderDiary(); }
+  if(id==='resultsheet') { rsPopulateFilters(); rsFilterStudents(); }
   // Close sidebar on mobile
   document.getElementById('sidebar').classList.remove('open');
 }
@@ -5182,6 +5292,7 @@ function loadSettings() {
   document.getElementById('setBankAccount').value=s.bankAccount||'';
   renderClassList();
   renderHolidayList();
+  renderSubjectPerClass();
   // Permission section — শুধু admin দেখবে
   var permCard = document.querySelector('#page-settings .card:last-child');
   if(permCard) permCard.style.display = (currentUser && currentUser.role==='admin') ? '' : 'none';
@@ -9355,10 +9466,17 @@ function wgSaveLayout(layout) {
   try { localStorage.setItem('mms_wg6', JSON.stringify(layout)); } catch(e){}
 }
 function wgUpdateItem(wid, props) {
-  var lay=wgLoadLayout()||[];
-  var item=lay.find(function(x){return x.wid===wid;});
-  if(!item) return;
-  Object.assign(item, props);
+  // layout null হলে DOM থেকে বর্তমান positions নিয়ে rebuild করো
+  var lay = wgLoadLayout();
+  if(!lay) {
+    lay = [];
+    document.querySelectorAll('.wg-slot').forEach(function(s){
+      lay.push({wid:s.dataset.wid, x:s.offsetLeft, y:s.offsetTop, w:s.offsetWidth, h:s.offsetHeight, hidden:false});
+    });
+  }
+  var item = lay.find(function(x){ return x.wid===wid; });
+  if(!item) { lay.push(Object.assign({wid:wid,x:0,y:0,w:300,h:240,hidden:false}, props)); }
+  else { Object.assign(item, props); }
   wgSaveLayout(lay);
 }
 
@@ -9644,6 +9762,907 @@ function openWidgetPicker() {
     openWidgetPicker();
   });
 }
+
+
+// ═══════════════════════════════════════════════════════════
+// ① SUBJECT PER CLASS
+// ═══════════════════════════════════════════════════════════
+
+function getSubjects(cls) {
+  return (data.subjects && data.subjects[cls]) ? data.subjects[cls] : [];
+}
+
+function renderSubjectPerClass() {
+  var el = document.getElementById('subjectPerClassList');
+  if(!el) return;
+  var classes = (data.settings && data.settings.classes) || [];
+  if(!classes.length) { el.innerHTML='<p style="color:var(--text-muted);font-size:13px;">আগে শ্রেণি যোগ করুন।</p>'; return; }
+  if(!data.subjects) data.subjects = {};
+
+  el.innerHTML = classes.map(function(cls) {
+    var subs = getSubjects(cls);
+    return '<div style="border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:10px;">'
+      +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">'
+        +'<span style="font-weight:700;font-size:14px;">📚 '+cls+'</span>'
+        +'<span style="font-size:11px;color:var(--text-muted);">'+subs.length+' টি বিষয়</span>'
+      +'</div>'
+      +'<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;">'
+        +subs.map(function(s,i){
+          return '<span style="background:var(--primary-ultra-light);border:1px solid var(--primary);color:var(--primary);border-radius:20px;padding:3px 10px;font-size:12px;display:flex;align-items:center;gap:4px;">'
+            +s+'<button onclick="removeSubject(\''+cls.replace(/'/g,"\\'")+ '\','+i+')" style="background:none;border:none;cursor:pointer;color:var(--danger);font-size:13px;padding:0;line-height:1;">×</button>'
+          +'</span>';
+        }).join('')
+        +(subs.length===0?'<span style="color:var(--text-muted);font-size:12px;">কোনো বিষয় নেই</span>':'')
+      +'</div>'
+      +'<div style="display:flex;gap:6px;">'
+        +'<input id="subInput_'+btoa(unescape(encodeURIComponent(cls))).replace(/=/g,'').replace(/\+/g,'_').replace(/\//g,'-')+'" type="text" placeholder="বিষয়ের নাম..." style="flex:1;padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-family:inherit;font-size:13px;" onkeydown="if(event.key===\'Enter\')addSubject(\''+cls.replace(/'/g,"\\'")+'\',this.value,this)">'
+        +'<button onclick="addSubject(\''+cls.replace(/'/g,"\\'")+ '\',document.getElementById(\'subInput_'+btoa(unescape(encodeURIComponent(cls))).replace(/=/g,'').replace(/\+/g,'_').replace(/\//g,'-')+'\').value,document.getElementById(\'subInput_'+btoa(unescape(encodeURIComponent(cls))).replace(/=/g,'').replace(/\+/g,'_').replace(/\//g,'-')+'\'))" style="background:var(--primary);color:#fff;border:none;border-radius:6px;padding:5px 12px;cursor:pointer;font-family:inherit;font-size:13px;">+ যোগ</button>'
+      +'</div>'
+    +'</div>';
+  }).join('');
+}
+
+function addSubject(cls, val, inputEl) {
+  val = (val||'').trim();
+  if(!val) return;
+  if(!data.subjects) data.subjects = {};
+  if(!data.subjects[cls]) data.subjects[cls] = [];
+  if(data.subjects[cls].indexOf(val) > -1) { toast('এই বিষয় আগে থেকেই আছে।','error'); return; }
+  data.subjects[cls].push(val);
+  save('subjects');
+  if(inputEl) inputEl.value = '';
+  renderSubjectPerClass();
+  toast('✅ "'+val+'" যোগ হয়েছে।');
+}
+
+function removeSubject(cls, idx) {
+  if(!data.subjects || !data.subjects[cls]) return;
+  var sub = data.subjects[cls][idx];
+  data.subjects[cls].splice(idx, 1);
+  save('subjects');
+  renderSubjectPerClass();
+  toast('"'+sub+'" বাদ দেওয়া হয়েছে।');
+}
+
+// ═══════════════════════════════════════════════════════════
+// ② DIARY
+// ═══════════════════════════════════════════════════════════
+
+function diaryPopulateFilters() {
+  var cls = document.getElementById('diaryFilterCls');
+  var sub = document.getElementById('diaryFilterSubject');
+  if(!cls || !sub) return;
+  var classes = (data.settings && data.settings.classes) || [];
+  cls.innerHTML = '<option value="">সব শ্রেণি</option>' + classes.map(function(c){ return '<option>'+c+'</option>'; }).join('');
+  sub.innerHTML = '<option value="">সব বিষয়</option>';
+  // Populate all unique subjects
+  var allSubs = [];
+  (data.diary||[]).forEach(function(d){ if(d.subject && allSubs.indexOf(d.subject)<0) allSubs.push(d.subject); });
+  sub.innerHTML += allSubs.map(function(s){ return '<option>'+s+'</option>'; }).join('');
+}
+
+function renderDiary() {
+  var el = document.getElementById('diaryList');
+  if(!el) return;
+  var filterCls  = (document.getElementById('diaryFilterCls')||{}).value||'';
+  var filterSub  = (document.getElementById('diaryFilterSubject')||{}).value||'';
+  var filterDate = (document.getElementById('diaryFilterDate')||{}).value||'';
+  var entries = (data.diary||[]).slice().sort(function(a,b){ return b.date.localeCompare(a.date); });
+  if(filterCls)  entries = entries.filter(function(e){ return e.cls===filterCls; });
+  if(filterSub)  entries = entries.filter(function(e){ return e.subject===filterSub; });
+  if(filterDate) entries = entries.filter(function(e){ return e.date===filterDate; });
+  if(!entries.length) { el.innerHTML='<p style="color:var(--text-muted);text-align:center;padding:20px;">কোনো এন্ট্রি নেই।</p>'; return; }
+  el.innerHTML = entries.map(function(e) {
+    var teacher = (data.teachers||[]).find(function(t){ return t.id===e.teacherId; });
+    return '<div style="border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:10px;">'
+      +'<div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:6px;margin-bottom:8px;">'
+        +'<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">'
+          +'<span style="background:var(--primary);color:#fff;border-radius:6px;padding:3px 10px;font-size:12px;font-weight:700;">'+e.cls+'</span>'
+          +'<span style="background:var(--accent-light);color:#5a3e00;border-radius:6px;padding:3px 10px;font-size:12px;font-weight:700;">'+e.subject+'</span>'
+          +'<span style="font-size:12px;color:var(--text-muted);">📅 '+e.date+'</span>'
+          +(teacher?'<span style="font-size:12px;color:var(--text-muted);">👤 '+teacher.name+'</span>':'')
+        +'</div>'
+        +'<div style="display:flex;gap:6px;">'
+          +'<button onclick="editDiaryEntry(\''+e.id+'\')" style="background:var(--primary-ultra-light);border:1px solid var(--primary);color:var(--primary);border-radius:6px;padding:3px 10px;font-size:11px;cursor:pointer;">✏️ সম্পাদনা</button>'
+          +'<button onclick="deleteDiaryEntry(\''+e.id+'\')" style="background:#fff0f0;border:1px solid var(--danger);color:var(--danger);border-radius:6px;padding:3px 10px;font-size:11px;cursor:pointer;">🗑️</button>'
+        +'</div>'
+      +'</div>'
+      +'<div style="font-size:13px;margin-bottom:6px;"><strong>📖 পাঠ্যক্রম:</strong> '+e.lesson+'</div>'
+      +(e.homework?'<div style="font-size:13px;background:#fffbec;border-left:3px solid var(--accent);padding:6px 10px;border-radius:0 6px 6px 0;"><strong>📝 বাড়ির কাজ:</strong> '+e.homework+'</div>':'')
+    +'</div>';
+  }).join('');
+}
+
+function openDiaryModal(id) {
+  var classes = (data.settings && data.settings.classes)||[];
+  var clsSel = document.getElementById('diaryCls');
+  if(clsSel) clsSel.innerHTML = '<option value="">বেছে নিন</option>'+classes.map(function(c){ return '<option>'+c+'</option>'; }).join('');
+  document.getElementById('diaryEditId').value = id||'';
+  document.getElementById('diarySubject').innerHTML = '<option value="">আগে শ্রেণি বেছে নিন</option>';
+  if(!id) {
+    document.getElementById('diaryDate').value = new Date().toISOString().split('T')[0];
+    document.getElementById('diaryCls').value = '';
+    document.getElementById('diaryLesson').value = '';
+    document.getElementById('diaryHomework').value = '';
+  } else {
+    var e = (data.diary||[]).find(function(x){ return x.id===id; });
+    if(!e) return;
+    document.getElementById('diaryDate').value = e.date;
+    document.getElementById('diaryCls').value  = e.cls;
+    diaryLoadSubjects();
+    setTimeout(function(){ document.getElementById('diarySubject').value = e.subject; }, 50);
+    document.getElementById('diaryLesson').value   = e.lesson;
+    document.getElementById('diaryHomework').value = e.homework||'';
+  }
+  openModal('diaryModal');
+}
+
+function diaryLoadSubjects() {
+  var cls = (document.getElementById('diaryCls')||{}).value||'';
+  var subs = getSubjects(cls);
+  var sel = document.getElementById('diarySubject');
+  if(!sel) return;
+  if(!subs.length) { sel.innerHTML='<option value="">এই শ্রেণিতে বিষয় নেই — সেটিংসে যোগ করুন</option>'; return; }
+  sel.innerHTML = '<option value="">বিষয় বেছে নিন</option>'+subs.map(function(s){ return '<option>'+s+'</option>'; }).join('');
+}
+
+function saveDiaryEntry() {
+  var date    = document.getElementById('diaryDate').value;
+  var cls     = document.getElementById('diaryCls').value;
+  var subject = document.getElementById('diarySubject').value;
+  var lesson  = document.getElementById('diaryLesson').value.trim();
+  var hw      = document.getElementById('diaryHomework').value.trim();
+  var editId  = document.getElementById('diaryEditId').value;
+  if(!date||!cls||!subject||!lesson) { toast('তারিখ, শ্রেণি, বিষয় ও পাঠ্যক্রম আবশ্যক।','error'); return; }
+  if(!data.diary) data.diary = [];
+  if(editId) {
+    var e = data.diary.find(function(x){ return x.id===editId; });
+    if(e) { e.date=date; e.cls=cls; e.subject=subject; e.lesson=lesson; e.homework=hw; }
+  } else {
+    var teacher = (data.teachers||[]).find(function(t){ return t.id===(currentUser&&currentUser.id); });
+    data.diary.push({ id:'DY'+Date.now(), date:date, cls:cls, subject:subject, lesson:lesson, homework:hw, teacherId:(currentUser&&currentUser.id)||'', createdAt:new Date().toISOString() });
+  }
+  save('diary');
+  closeModal('diaryModal');
+  renderDiary();
+  toast('✅ ডায়েরি এন্ট্রি সংরক্ষিত হয়েছে।');
+}
+
+function editDiaryEntry(id) { openDiaryModal(id); }
+
+function deleteDiaryEntry(id) {
+  if(!confirm('এই এন্ট্রি মুছবেন?')) return;
+  data.diary = (data.diary||[]).filter(function(x){ return x.id!==id; });
+  save('diary'); renderDiary(); toast('মুছে ফেলা হয়েছে।','error');
+}
+
+// ═══════════════════════════════════════════════════════════
+// ③ STUDENT RESULT SHEET
+// ═══════════════════════════════════════════════════════════
+
+var EXAM_KEYS = [
+  { key:'mt1',    label:'১ম মডেল টেস্ট',   short:'MT-1',  maxMark:100, type:'mt' },
+  { key:'mt2',    label:'২য় মডেল টেস্ট',   short:'MT-2',  maxMark:100, type:'mt' },
+  { key:'half',   label:'অর্ধ-বার্ষিক',      short:'অর্ধ',  maxMark:100, type:'half' },
+  { key:'mt3',    label:'৩য় মডেল টেস্ট',   short:'MT-3',  maxMark:100, type:'mt' },
+  { key:'mt4',    label:'৪র্থ মডেল টেস্ট',  short:'MT-4',  maxMark:100, type:'mt' },
+  { key:'annual', label:'বার্ষিক পরীক্ষা',   short:'বার্ষিক', maxMark:100, type:'annual' },
+];
+
+// GPA calculation (Bangladesh standard)
+function calcGPA(percent) {
+  if(percent>=80) return {gpa:5.0, grade:'A+'};
+  if(percent>=70) return {gpa:4.0, grade:'A'};
+  if(percent>=60) return {gpa:3.5, grade:'A-'};
+  if(percent>=50) return {gpa:3.0, grade:'B'};
+  if(percent>=40) return {gpa:2.0, grade:'C'};
+  if(percent>=33) return {gpa:1.0, grade:'D'};
+  return {gpa:0, grade:'F'};
+}
+
+function rsPopulateFilters() {
+  var sel = document.getElementById('rsFilterCls');
+  if(!sel) return;
+  var classes = (data.settings&&data.settings.classes)||[];
+  sel.innerHTML = '<option value="">শ্রেণি বেছে নিন</option>'+classes.map(function(c){ return '<option>'+c+'</option>'; }).join('');
+}
+
+function rsFilterStudents() {
+  var cls = (document.getElementById('rsFilterCls')||{}).value||'';
+  var q   = ((document.getElementById('rsSearchInput')||{}).value||'').toLowerCase();
+  var students = (data.students||[]).filter(function(s){
+    if(cls && s.cls!==cls) return false;
+    if(q && !(s.name||'').toLowerCase().includes(q) && !(s.roll||'').toString().includes(q)) return false;
+    return true;
+  });
+  var el = document.getElementById('rsStudentGrid');
+  if(!el) return;
+  if(!students.length) { el.innerHTML='<p style="color:var(--text-muted);">কোনো শিক্ষার্থী পাওয়া যায়নি।</p>'; return; }
+  el.innerHTML = students.map(function(s) {
+    var er = (data.examResults&&data.examResults[s.id])||{};
+    var doneCount = Object.keys(er).length;
+    return '<div onclick="openResultSheet(\''+s.id+'\')" style="border:1px solid var(--border);border-radius:10px;padding:14px;cursor:pointer;transition:.15s;background:#fff;" onmouseover="this.style.borderColor=\'var(--primary)\';this.style.background=\'var(--primary-ultra-light)\'" onmouseout="this.style.borderColor=\'var(--border)\';this.style.background=\'#fff\'">'
+      +'<div style="font-weight:700;font-size:14px;margin-bottom:4px;">'+s.name+'</div>'
+      +'<div style="font-size:12px;color:var(--text-muted);">রোল: '+(s.roll||'-')+' | শ্রেণি: '+s.cls+'</div>'
+      +'<div style="font-size:11px;margin-top:6px;color:'+(doneCount>0?'var(--primary)':'#aaa')+'">'+(doneCount>0?doneCount+' টি পরীক্ষার ডেটা আছে':'এখনো কোনো ডেটা নেই')+'</div>'
+    +'</div>';
+  }).join('');
+}
+
+function openResultSheet(studentId) {
+  var student = (data.students||[]).find(function(s){ return s.id===studentId; });
+  if(!student) return;
+  document.getElementById('rsModalTitle').textContent = '📊 '+student.name+' — রেজাল্ট শিট';
+  var body = document.getElementById('resultSheetBody');
+  body.innerHTML = buildResultSheetHTML(student);
+  openModal('resultSheetModal');
+}
+
+function buildResultSheetHTML(student) {
+  var subjects = getSubjects(student.cls);
+  if(!subjects.length) return '<p style="color:var(--text-muted);padding:20px;text-align:center;">এই শ্রেণির জন্য কোনো বিষয় নেই। সেটিংসে বিষয় যোগ করুন।</p>';
+  var er = (data.examResults&&data.examResults[student.id])||{};
+  var html = '';
+
+  // Header
+  html += '<div style="text-align:center;margin-bottom:16px;">'
+    +'<div style="font-weight:700;font-size:16px;">'+(data.settings&&data.settings.name||'মাদ্রাসা')+'</div>'
+    +'<div style="font-size:13px;color:var(--text-muted);">শিক্ষার্থী: <strong>'+student.name+'</strong> | রোল: '+(student.roll||'-')+' | শ্রেণি: '+student.cls+'</div>'
+  +'</div>';
+
+  // Each exam section
+  EXAM_KEYS.forEach(function(exam) {
+    var marks = er[exam.key] || {};
+    // For half-yearly: show MT1+MT2 average contribution
+    // For annual: show all MT + half contributions
+    html += '<div style="margin-bottom:20px;">'
+      +'<div style="background:var(--primary);color:#fff;padding:8px 14px;border-radius:8px 8px 0 0;display:flex;justify-content:space-between;align-items:center;">'
+        +'<span style="font-weight:700;">'+exam.label+'</span>'
+        +(canWrite()?'<button onclick="openExamEntry(\''+student.id+'\',\''+exam.key+'\')" style="background:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.4);color:#fff;border-radius:5px;padding:3px 10px;font-size:11px;cursor:pointer;">✏️ নম্বর দিন</button>':'')
+      +'</div>'
+      +'<div style="overflow-x:auto;">'
+      +'<table style="width:100%;border-collapse:collapse;font-size:13px;">'
+      +'<thead><tr style="background:#f5f5f5;">'
+        +'<th style="padding:8px;border:1px solid var(--border);text-align:left;">বিষয়</th>'
+        +'<th style="padding:8px;border:1px solid var(--border);">প্রাপ্ত নম্বর</th>'
+        +'<th style="padding:8px;border:1px solid var(--border);">পূর্ণ নম্বর</th>'
+        +'<th style="padding:8px;border:1px solid var(--border);">%</th>'
+        +'<th style="padding:8px;border:1px solid var(--border);">গ্রেড</th>'
+      +'</tr></thead><tbody>';
+
+    var totalObtained = 0, totalMax = 0, allEntered = subjects.length > 0;
+    subjects.forEach(function(sub) {
+      var m = parseFloat(marks[sub]||'');
+      var hasM = !isNaN(m);
+      if(!hasM) allEntered = false;
+      var pct = hasM ? (m/exam.maxMark*100).toFixed(1) : '-';
+      var g = hasM ? calcGPA(m/exam.maxMark*100).grade : '-';
+      if(hasM) { totalObtained += m; totalMax += exam.maxMark; }
+      var gradeColor = g==='A+'?'#1a7a3f':g==='A'?'#2d7a4f':g==='A-'?'#4a9a6f':g==='B'?'#c9a227':g==='C'?'#e07000':g==='D'?'#c05000':g==='F'?'var(--danger)':'#666';
+      html += '<tr>'
+        +'<td style="padding:7px 10px;border:1px solid var(--border);">'+sub+'</td>'
+        +'<td style="padding:7px;border:1px solid var(--border);text-align:center;font-weight:700;">'+(hasM?m:'—')+'</td>'
+        +'<td style="padding:7px;border:1px solid var(--border);text-align:center;">'+exam.maxMark+'</td>'
+        +'<td style="padding:7px;border:1px solid var(--border);text-align:center;">'+pct+(hasM?'%':'')+'</td>'
+        +'<td style="padding:7px;border:1px solid var(--border);text-align:center;font-weight:700;color:'+gradeColor+';">'+g+'</td>'
+      +'</tr>';
+    });
+
+    // Summary row
+    if(allEntered && totalMax > 0) {
+      var overallPct = (totalObtained/totalMax*100).toFixed(1);
+      var g = calcGPA(parseFloat(overallPct));
+      // For half-yearly: add MT1+MT2 average
+      var extraNote = '';
+      if(exam.key==='half') {
+        var mt1m = er['mt1']||{}, mt2m = er['mt2']||{};
+        var mt1sum=0,mt2sum=0,mtCount=0;
+        subjects.forEach(function(s){
+          var m1=parseFloat(mt1m[s]||''),m2=parseFloat(mt2m[s]||'');
+          if(!isNaN(m1)&&!isNaN(m2)){mt1sum+=m1;mt2sum+=m2;mtCount++;}
+        });
+        if(mtCount>0){
+          var mtAvg=((mt1sum+mt2sum)/(mtCount*2)).toFixed(1);
+          var halfAvg=(totalObtained/subjects.length).toFixed(1);
+          var combined=((parseFloat(mtAvg)+parseFloat(halfAvg))/2).toFixed(1);
+          extraNote=' <small style="color:var(--text-muted);">(MT গড়: '+mtAvg+' | অর্ধ গড়: '+halfAvg+' | সম্মিলিত: '+combined+')</small>';
+        }
+      }
+      if(exam.key==='annual') {
+        // All exams combined
+        var allKeys=['mt1','mt2','mt3','mt4'], allSum=0, allCnt=0;
+        allKeys.forEach(function(k){
+          var mm=er[k]||{};
+          subjects.forEach(function(s){ var v=parseFloat(mm[s]||''); if(!isNaN(v)){allSum+=v;allCnt++;} });
+        });
+        var halfSum=0, halfCnt=0;
+        var hm=er['half']||{};
+        subjects.forEach(function(s){ var v=parseFloat(hm[s]||''); if(!isNaN(v)){halfSum+=v;halfCnt++;} });
+        if(allCnt>0||halfCnt>0) {
+          var combinedTotal = totalObtained + allSum + halfSum;
+          var combinedMax   = (totalMax) + (allCnt>0?allCnt*exam.maxMark/subjects.length*subjects.length:0) + (halfCnt>0?halfCnt*exam.maxMark/subjects.length*subjects.length:0);
+          extraNote=' <small style="color:var(--text-muted);">(সকল পরীক্ষা সম্মিলিত)</small>';
+        }
+      }
+      html += '<tr style="background:#e8f5ee;font-weight:700;">'
+        +'<td style="padding:8px 10px;border:1px solid var(--border);">মোট'+extraNote+'</td>'
+        +'<td style="padding:8px;border:1px solid var(--border);text-align:center;">'+totalObtained+'</td>'
+        +'<td style="padding:8px;border:1px solid var(--border);text-align:center;">'+totalMax+'</td>'
+        +'<td style="padding:8px;border:1px solid var(--border);text-align:center;">'+overallPct+'%</td>'
+        +'<td style="padding:8px;border:1px solid var(--border);text-align:center;color:'+(g.grade==='F'?'var(--danger)':'var(--primary)')+';">'+g.grade+' ('+g.gpa+')</td>'
+      +'</tr>';
+    }
+    html += '</tbody></table></div>';
+
+    // Rank in class for this exam
+    if(allEntered) {
+      var rank = calcExamRank(student, exam.key, subjects);
+      html += '<div style="text-align:right;font-size:12px;padding:4px 8px;color:var(--primary);font-weight:700;">মেধাস্থান: '+rank+'</div>';
+    }
+    html += '</div>';
+  });
+
+  return html;
+}
+
+function calcExamRank(student, examKey, subjects) {
+  var myTotal = getExamTotal(student.id, examKey, subjects);
+  if(myTotal < 0) return '-';
+  var classmates = (data.students||[]).filter(function(s){ return s.cls===student.cls && s.id!==student.id; });
+  var rank = 1;
+  classmates.forEach(function(s) {
+    var t = getExamTotal(s.id, examKey, subjects);
+    if(t > myTotal) rank++;
+  });
+  return rank+'য়';
+}
+
+function getExamTotal(studentId, examKey, subjects) {
+  var er = (data.examResults&&data.examResults[studentId])||{};
+  var marks = er[examKey]||{};
+  var total = 0, all = true;
+  subjects.forEach(function(s){ var v=parseFloat(marks[s]||''); if(isNaN(v)) all=false; else total+=v; });
+  return all ? total : -1;
+}
+
+// Exam entry modal
+var _rsCurrentStudentId = null;
+var _rsCurrentExamKey   = null;
+
+function openExamEntry(studentId, examKey) {
+  _rsCurrentStudentId = studentId;
+  _rsCurrentExamKey   = examKey;
+  var student  = (data.students||[]).find(function(s){ return s.id===studentId; });
+  var examDef  = EXAM_KEYS.find(function(e){ return e.key===examKey; });
+  if(!student||!examDef) return;
+  var subjects = getSubjects(student.cls);
+  if(!subjects.length) { toast('এই শ্রেণিতে বিষয় নেই। সেটিংসে যোগ করুন।','error'); return; }
+  var er    = (data.examResults&&data.examResults[studentId])||{};
+  var marks = er[examKey]||{};
+
+  var modalId = 'examEntryModal';
+  var existing = document.getElementById(modalId);
+  if(existing) existing.remove();
+
+  var m = document.createElement('div');
+  m.id = modalId; m.className = 'modal-overlay open';
+  m.innerHTML = '<div class="modal" style="max-width:420px;">'
+    +'<div class="modal-header"><span class="modal-title">✏️ '+examDef.label+' — '+student.name+'</span>'
+      +'<button class="modal-close" onclick="document.getElementById(\'examEntryModal\').remove()">✕</button></div>'
+    +'<div class="modal-body" style="display:flex;flex-direction:column;gap:8px;">'
+      +'<p style="font-size:12px;color:var(--text-muted);">প্রতিটি বিষয়ে পূর্ণ নম্বর: '+examDef.maxMark+'</p>'
+      +subjects.map(function(sub){
+        var v = marks[sub]||'';
+        return '<div style="display:flex;align-items:center;gap:10px;">'
+          +'<label style="flex:1;font-size:13px;font-weight:600;">'+sub+'</label>'
+          +'<input type="number" id="em_'+btoa(unescape(encodeURIComponent(sub))).replace(/[=+/]/g,'_')+'" value="'+v+'" min="0" max="'+examDef.maxMark+'" style="width:80px;padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-family:inherit;font-size:13px;" placeholder="নম্বর">'
+        +'</div>';
+      }).join('')
+      +'<div class="btn-group" style="margin-top:8px;">'
+        +'<button class="btn btn-primary" onclick="saveExamMarks()">💾 সংরক্ষণ</button>'
+        +'<button class="btn btn-outline" onclick="document.getElementById(\'examEntryModal\').remove()">বাতিল</button>'
+      +'</div>'
+    +'</div></div>';
+  document.body.appendChild(m);
+  m.addEventListener('click', function(e){ if(e.target===m) m.remove(); });
+  window._rsExamSubjects = subjects;
+}
+
+function saveExamMarks() {
+  var subjects = window._rsExamSubjects||[];
+  if(!_rsCurrentStudentId||!_rsCurrentExamKey) return;
+  if(!data.examResults) data.examResults = {};
+  if(!data.examResults[_rsCurrentStudentId]) data.examResults[_rsCurrentStudentId] = {};
+  var marks = {};
+  subjects.forEach(function(sub) {
+    var inputId = 'em_'+btoa(unescape(encodeURIComponent(sub))).replace(/[=+/]/g,'_');
+    var el = document.getElementById(inputId);
+    if(el && el.value.trim()!=='') marks[sub] = parseFloat(el.value)||0;
+  });
+  data.examResults[_rsCurrentStudentId][_rsCurrentExamKey] = marks;
+  save('examResults');
+  var m = document.getElementById('examEntryModal'); if(m) m.remove();
+  // Refresh result sheet
+  var student = (data.students||[]).find(function(s){ return s.id===_rsCurrentStudentId; });
+  if(student) { document.getElementById('resultSheetBody').innerHTML = buildResultSheetHTML(student); }
+  toast('✅ নম্বর সংরক্ষিত হয়েছে।');
+}
+
+function printResultSheetModal() {
+  var content = document.getElementById('resultSheetBody').innerHTML;
+  var w = window.open('','_blank');
+  w.document.write('<html><head><meta charset="UTF-8"><style>body{font-family:"Noto Sans Bengali",sans-serif;padding:20px;font-size:13px;}table{width:100%;border-collapse:collapse;}th,td{border:1px solid #ccc;padding:6px 8px;}th{background:#1a4a2e;color:#fff;}@media print{button{display:none!important;}}@import url("https://fonts.googleapis.com/css2?family=Noto+Sans+Bengali&display=swap");</style></head><body>'+content+'</body></html>');
+  w.document.close();
+  setTimeout(function(){ w.print(); }, 500);
+}
+
+
+
+// ═══════════════════════════════════════════
+// ① SUBJECT PER CLASS
+// ═══════════════════════════════════════════
+
+function getSubjects(cls) {
+  return (data.subjects && data.subjects[cls]) ? data.subjects[cls] : [];
+}
+
+function renderSubjectPerClass() {
+  var el = document.getElementById('subjectPerClassList');
+  if(!el) return;
+  var classes = data.settings.classes || [];
+  if(!classes.length) { el.innerHTML='<p style="color:var(--text-muted);font-size:13px;">আগে শ্রেণি যোগ করুন।</p>'; return; }
+  el.innerHTML = classes.map(function(cls) {
+    var subs = getSubjects(cls);
+    return '<div style="border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:10px;">'
+      +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">'
+        +'<strong style="font-size:13px;">'+cls+'</strong>'
+        +'<span style="font-size:11px;color:var(--text-muted);">'+subs.length+' টি বিষয়</span>'
+      +'</div>'
+      +'<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;">'
+        +subs.map(function(s,i){
+          return '<span style="background:var(--primary-ultra-light);border:1px solid var(--primary);border-radius:20px;padding:3px 10px;font-size:12px;display:flex;align-items:center;gap:5px;">'
+            +s+'<button onclick="removeSubject(\''+cls+'\','+i+')" style="background:none;border:none;color:var(--danger);cursor:pointer;font-size:13px;line-height:1;padding:0;">✕</button>'
+          +'</span>';
+        }).join('')
+        +(subs.length===0?'<span style="color:var(--text-muted);font-size:12px;">কোনো বিষয় নেই</span>':'')
+      +'</div>'
+      +'<div style="display:flex;gap:6px;">'
+        +'<input type="text" id="subInput_'+cls.replace(/\s/g,'_')+'" placeholder="বিষয়ের নাম..." '
+          +'style="flex:1;padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-size:12px;font-family:inherit;" '
+          +'onkeydown="if(event.key===\'Enter\')addSubject(\''+cls+'\')">'
+        +'<button onclick="addSubject(\''+cls+'\')" style="background:var(--primary);color:#fff;border:none;border-radius:6px;padding:5px 12px;font-size:12px;cursor:pointer;">+ যোগ</button>'
+      +'</div>'
+    +'</div>';
+  }).join('');
+}
+
+function addSubject(cls) {
+  var id = 'subInput_'+cls.replace(/\s/g,'_');
+  var el = document.getElementById(id);
+  if(!el) return;
+  var nm = el.value.trim();
+  if(!nm) return;
+  if(!data.subjects) data.subjects = {};
+  if(!data.subjects[cls]) data.subjects[cls] = [];
+  if(data.subjects[cls].includes(nm)) { toast('এই বিষয় আগে থেকেই আছে।','error'); return; }
+  data.subjects[cls].push(nm);
+  save('subjects');
+  el.value = '';
+  renderSubjectPerClass();
+  toast(cls+' — "'+nm+'" যোগ হয়েছে ✅');
+}
+
+function removeSubject(cls, idx) {
+  if(!data.subjects || !data.subjects[cls]) return;
+  var nm = data.subjects[cls][idx];
+  data.subjects[cls].splice(idx, 1);
+  save('subjects');
+  renderSubjectPerClass();
+  toast('"'+nm+'" বাদ দেওয়া হয়েছে।','error');
+}
+
+// Settings load এ call করো
+function renderClassList() {
+  var container = document.getElementById('classList');
+  if(!container) return;
+  var classes = data.settings.classes || [];
+  if(!classes.length) { container.innerHTML='<p style="color:var(--text-muted);font-size:13px;">কোনো শ্রেণি নেই।</p>'; return; }
+  container.innerHTML = classes.map(function(cls){
+    return '<span style="display:inline-flex;align-items:center;gap:5px;background:var(--primary-ultra-light);border:1px solid var(--primary);border-radius:20px;padding:4px 10px;font-size:12px;margin:2px;">'
+      +cls
+      +'<button onclick="removeClass(\''+cls+'\')" style="background:none;border:none;color:var(--danger);cursor:pointer;font-size:13px;padding:0;line-height:1;">✕</button>'
+    +'</span>';
+  }).join('');
+  renderSubjectPerClass();
+}
+
+
+// ═══════════════════════════════════════════
+// ② DIARY
+// ═══════════════════════════════════════════
+
+function diaryPopulateFilters() {
+  var classes = data.settings.classes || [];
+  var clsSel = document.getElementById('diaryFilterCls');
+  var diaryCls = document.getElementById('diaryCls');
+  if(clsSel) clsSel.innerHTML = '<option value="">সব শ্রেণি</option>' + classes.map(function(c){ return '<option>'+c+'</option>'; }).join('');
+  if(diaryCls) diaryCls.innerHTML = '<option value="">বেছে নিন</option>' + classes.map(function(c){ return '<option>'+c+'</option>'; }).join('');
+  // Today default
+  var di = document.getElementById('diaryFilterDate');
+  if(di && !di.value) di.value = new Date().toISOString().split('T')[0];
+  var dd = document.getElementById('diaryDate');
+  if(dd && !dd.value) dd.value = new Date().toISOString().split('T')[0];
+}
+
+function diaryLoadSubjects() {
+  var cls = (document.getElementById('diaryCls')||{}).value||'';
+  var sel = document.getElementById('diarySubject');
+  if(!sel) return;
+  var subs = getSubjects(cls);
+  sel.innerHTML = subs.length
+    ? '<option value="">বিষয় বেছে নিন</option>' + subs.map(function(s){ return '<option>'+s+'</option>'; }).join('')
+    : '<option value="">এই শ্রেণিতে বিষয় নেই — সেটিংসে যোগ করুন</option>';
+  // also populate subject filter
+  var fsub = document.getElementById('diaryFilterSubject');
+  if(fsub) {
+    var allSubs = [];
+    (data.settings.classes||[]).forEach(function(c){ (getSubjects(c)||[]).forEach(function(s){ if(!allSubs.includes(s)) allSubs.push(s); }); });
+    fsub.innerHTML = '<option value="">সব বিষয়</option>' + allSubs.map(function(s){ return '<option>'+s+'</option>'; }).join('');
+  }
+}
+
+function openDiaryModal(id) {
+  diaryPopulateFilters();
+  document.getElementById('diaryEditId').value = id||'';
+  if(id) {
+    var entry = (data.diary||[]).find(function(x){ return x.id===id; });
+    if(!entry) return;
+    document.getElementById('diaryDate').value = entry.date||'';
+    document.getElementById('diaryCls').value = entry.cls||'';
+    diaryLoadSubjects();
+    setTimeout(function(){ document.getElementById('diarySubject').value = entry.subject||''; }, 50);
+    document.getElementById('diaryLesson').value = entry.lesson||'';
+    document.getElementById('diaryHomework').value = entry.homework||'';
+  } else {
+    document.getElementById('diaryDate').value = new Date().toISOString().split('T')[0];
+    document.getElementById('diaryCls').value = '';
+    document.getElementById('diarySubject').innerHTML = '<option>আগে শ্রেণি বেছে নিন</option>';
+    document.getElementById('diaryLesson').value = '';
+    document.getElementById('diaryHomework').value = '';
+  }
+  openModal('diaryModal');
+}
+
+function saveDiaryEntry() {
+  var date    = (document.getElementById('diaryDate')||{}).value||'';
+  var cls     = (document.getElementById('diaryCls')||{}).value||'';
+  var subject = (document.getElementById('diarySubject')||{}).value||'';
+  var lesson  = (document.getElementById('diaryLesson')||{}).value.trim()||'';
+  var hw      = (document.getElementById('diaryHomework')||{}).value.trim()||'';
+  var editId  = (document.getElementById('diaryEditId')||{}).value||'';
+  if(!date||!cls||!subject||!lesson) { toast('তারিখ, শ্রেণি, বিষয় ও পড়া আবশ্যক।','error'); return; }
+  if(!data.diary) data.diary = [];
+  if(editId) {
+    var entry = data.diary.find(function(x){ return x.id===editId; });
+    if(entry) { entry.date=date; entry.cls=cls; entry.subject=subject; entry.lesson=lesson; entry.homework=hw; }
+  } else {
+    var tid = (data.teachers||[]).find(function(t){ return t.id===(currentUser&&currentUser.teacherId); });
+    data.diary.push({ id:'dr_'+Date.now(), date:date, cls:cls, subject:subject, lesson:lesson, homework:hw,
+      teacherId:(currentUser&&currentUser.teacherId)||'', teacherName:(tid&&tid.name)||'', createdAt:new Date().toISOString() });
+  }
+  save('diary');
+  closeModal('diaryModal');
+  renderDiary();
+  toast('ডায়েরি এন্ট্রি সংরক্ষিত ✅');
+}
+
+function deleteDiaryEntry(id) {
+  if(!confirm('এই এন্ট্রি মুছবেন?')) return;
+  data.diary = (data.diary||[]).filter(function(x){ return x.id!==id; });
+  save('diary');
+  renderDiary();
+  toast('মুছে ফেলা হয়েছে।','error');
+}
+
+function renderDiary() {
+  var el = document.getElementById('diaryList');
+  if(!el) return;
+  var fCls  = (document.getElementById('diaryFilterCls')||{}).value||'';
+  var fSub  = (document.getElementById('diaryFilterSubject')||{}).value||'';
+  var fDate = (document.getElementById('diaryFilterDate')||{}).value||'';
+  var list  = (data.diary||[]).filter(function(d){
+    if(fCls  && d.cls!==fCls)       return false;
+    if(fSub  && d.subject!==fSub)   return false;
+    if(fDate && d.date!==fDate)     return false;
+    return true;
+  }).sort(function(a,b){ return b.date.localeCompare(a.date); });
+
+  if(!list.length) { el.innerHTML='<p style="color:var(--text-muted);text-align:center;padding:20px;">কোনো এন্ট্রি নেই।</p>'; return; }
+
+  el.innerHTML = list.map(function(d){
+    var canEdit = !currentUser || currentUser.role==='admin' || currentUser.teacherId===d.teacherId;
+    return '<div style="border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:10px;">'
+      +'<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;margin-bottom:8px;">'
+        +'<div style="display:flex;gap:8px;align-items:center;">'
+          +'<span style="background:var(--primary);color:#fff;border-radius:6px;padding:3px 10px;font-size:12px;font-weight:700;">'+d.cls+'</span>'
+          +'<span style="background:var(--primary-ultra-light);border:1px solid var(--primary);border-radius:6px;padding:3px 10px;font-size:12px;">'+d.subject+'</span>'
+          +'<span style="font-size:12px;color:var(--text-muted);">📅 '+d.date+'</span>'
+        +'</div>'
+        +(canEdit?'<div style="display:flex;gap:6px;">'
+          +'<button onclick="openDiaryModal(\''+d.id+'\')" style="background:var(--primary-ultra-light);border:1px solid var(--primary);color:var(--primary);border-radius:6px;padding:3px 10px;font-size:11px;cursor:pointer;">✏️ সম্পাদনা</button>'
+          +'<button onclick="deleteDiaryEntry(\''+d.id+'\')" style="background:#fee;border:1px solid var(--danger);color:var(--danger);border-radius:6px;padding:3px 10px;font-size:11px;cursor:pointer;">🗑️</button>'
+        +'</div>':'')
+      +'</div>'
+      +'<div style="font-size:13px;margin-bottom:4px;"><strong>📖 আজকের পড়া:</strong> '+d.lesson+'</div>'
+      +(d.homework?'<div style="font-size:13px;color:#c75000;"><strong>📝 বাড়ির কাজ:</strong> '+d.homework+'</div>':'')
+      +(d.teacherName?'<div style="font-size:11px;color:var(--text-muted);margin-top:4px;">শিক্ষক: '+d.teacherName+'</div>':'')
+    +'</div>';
+  }).join('');
+}
+
+
+// ═══════════════════════════════════════════
+// ③ RESULT SHEET (per student, exam-wise)
+// ═══════════════════════════════════════════
+
+// পরীক্ষার ক্রম ও নাম — সব calculation এখানে
+var EXAM_KEYS = [
+  { key:'mt1',    label:'১ম মডেল টেস্ট',   short:'MT-1',  type:'mt',     maxMark:100 },
+  { key:'mt2',    label:'২য় মডেল টেস্ট',   short:'MT-2',  type:'mt',     maxMark:100 },
+  { key:'half',   label:'অর্ধবার্ষিক',      short:'অর্ধ', type:'half',   maxMark:100 },
+  { key:'mt3',    label:'৩য় মডেল টেস্ট',   short:'MT-3',  type:'mt',     maxMark:100 },
+  { key:'mt4',    label:'৪র্থ মডেল টেস্ট',  short:'MT-4',  type:'mt',     maxMark:100 },
+  { key:'annual', label:'বার্ষিক / ফাইনাল', short:'বার্ষিক', type:'annual', maxMark:100 },
+];
+
+// GPA table (Bangladesh standard)
+function calcGPA(pct) {
+  if(pct>=80) return {gpa:5.00, grade:'A+'};
+  if(pct>=70) return {gpa:4.00, grade:'A'};
+  if(pct>=60) return {gpa:3.50, grade:'A-'};
+  if(pct>=50) return {gpa:3.00, grade:'B'};
+  if(pct>=40) return {gpa:2.00, grade:'C'};
+  if(pct>=33) return {gpa:1.00, grade:'D'};
+  return {gpa:0, grade:'F'};
+}
+
+function rsPopulateFilters() {
+  var sel = document.getElementById('rsFilterCls');
+  if(!sel) return;
+  var classes = data.settings.classes||[];
+  sel.innerHTML = '<option value="">শ্রেণি বেছে নিন</option>' + classes.map(function(c){ return '<option>'+c+'</option>'; }).join('');
+}
+
+function rsFilterStudents() {
+  var cls = (document.getElementById('rsFilterCls')||{}).value||'';
+  var q   = ((document.getElementById('rsSearchInput')||{}).value||'').toLowerCase();
+  var students = (data.students||[]).filter(function(s){
+    if(cls && s.cls!==cls) return false;
+    if(q && !(s.name||'').toLowerCase().includes(q) && !(s.roll||'').toString().includes(q)) return false;
+    return true;
+  });
+  var grid = document.getElementById('rsStudentGrid');
+  if(!grid) return;
+  if(!students.length) { grid.innerHTML='<p style="color:var(--text-muted);">কোনো শিক্ষার্থী পাওয়া যায়নি।</p>'; return; }
+  grid.innerHTML = students.map(function(s){
+    return '<div onclick="openResultSheet(\''+s.id+'\')" style="border:1px solid var(--border);border-radius:10px;padding:14px;cursor:pointer;transition:.15s;background:#fff;" onmouseover="this.style.borderColor=\'var(--primary)\'" onmouseout="this.style.borderColor=\'var(--border)\'">'
+      +'<div style="font-weight:700;font-size:14px;margin-bottom:4px;">'+s.name+'</div>'
+      +'<div style="font-size:12px;color:var(--text-muted);">'+s.cls+' | রোল: '+(s.roll||'—')+'</div>'
+      +'<div style="margin-top:8px;font-size:11px;background:var(--primary-ultra-light);border-radius:6px;padding:4px 8px;color:var(--primary);font-weight:600;">📊 রেজাল্ট দেখুন</div>'
+    +'</div>';
+  }).join('');
+}
+
+function openResultSheet(studentId) {
+  var student = (data.students||[]).find(function(s){ return s.id===studentId; });
+  if(!student) return;
+  var title = document.getElementById('rsModalTitle');
+  if(title) title.textContent = '📊 '+student.name+' — রেজাল্ট শিট ('+student.cls+')';
+
+  var subjects = getSubjects(student.cls);
+  if(!subjects.length) {
+    document.getElementById('resultSheetBody').innerHTML = '<div style="padding:20px;text-align:center;color:var(--text-muted);">এই শ্রেণির কোনো বিষয় সেট করা নেই।<br>সেটিংস → শ্রেণিভিত্তিক বিষয় থেকে যোগ করুন।</div>';
+    openModal('resultSheetModal');
+    return;
+  }
+
+  var er = (data.examResults && data.examResults[studentId]) || {};
+
+  // Build HTML
+  var html = '<div style="font-family:\'Noto Sans Bengali\',sans-serif;">';
+
+  // Student info
+  html += '<div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:16px;padding:12px;background:var(--primary-ultra-light);border-radius:10px;">'
+    +'<div><strong>নাম:</strong> '+student.name+'</div>'
+    +'<div><strong>শ্রেণি:</strong> '+student.cls+'</div>'
+    +'<div><strong>রোল:</strong> '+(student.roll||'—')+'</div>'
+    +'<div><strong>কোড:</strong> '+(student.code||'—')+'</div>'
+  +'</div>';
+
+  EXAM_KEYS.forEach(function(exam) {
+    var marks = er[exam.key] || {};
+
+    // অর্ধবার্ষিকে MT1+MT2 average যোগ হবে
+    // বার্ষিকে MT3+MT4+annual এর calculation হবে
+    var extraNote = '';
+    if(exam.key==='half') extraNote = '<span style="font-size:11px;color:var(--text-muted);margin-left:8px;">(MT-1 + MT-2 গড় অন্তর্ভুক্ত)</span>';
+    if(exam.key==='annual') extraNote = '<span style="font-size:11px;color:var(--text-muted);margin-left:8px;">(MT-3 + MT-4 + বার্ষিক সমন্বয়)</span>';
+
+    html += '<div style="margin-bottom:20px;">'
+      +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">'
+        +'<h4 style="margin:0;color:var(--primary);font-size:14px;">'+exam.label+extraNote+'</h4>'
+        +'<button onclick="openMarkEntry(\''+studentId+'\',\''+exam.key+'\')" style="background:var(--primary);color:#fff;border:none;border-radius:6px;padding:4px 12px;font-size:12px;cursor:pointer;">✏️ মার্ক এন্ট্রি</button>'
+      +'</div>'
+      +'<div style="overflow-x:auto;">'
+      +'<table style="width:100%;border-collapse:collapse;font-size:13px;">'
+      +'<thead><tr style="background:var(--primary);color:#fff;">'
+        +'<th style="padding:7px 10px;text-align:left;">বিষয়</th>'
+        +'<th style="padding:7px 10px;">পূর্ণমান</th>'
+        +'<th style="padding:7px 10px;">প্রাপ্ত</th>'
+        +'<th style="padding:7px 10px;">%</th>'
+        +'<th style="padding:7px 10px;">গ্রেড</th>'
+      +'</tr></thead><tbody>';
+
+    var totalObtained=0, totalMax=0, anyMark=false;
+    subjects.forEach(function(sub, si) {
+      var m = marks[sub];
+      var maxM = exam.maxMark;
+      var obtained = (m!==undefined && m!=='' && !isNaN(Number(m))) ? Number(m) : null;
+      var pct = obtained!==null ? Math.round(obtained/maxM*100) : null;
+      var g = pct!==null ? calcGPA(pct) : null;
+      if(obtained!==null){ totalObtained+=obtained; totalMax+=maxM; anyMark=true; }
+      html += '<tr style="background:'+(si%2===0?'#f8f8f8':'#fff')+'">'
+        +'<td style="padding:6px 10px;">'+sub+'</td>'
+        +'<td style="padding:6px 10px;text-align:center;">'+maxM+'</td>'
+        +'<td style="padding:6px 10px;text-align:center;font-weight:700;color:'+(obtained===null?'#ccc':obtained<maxM*0.33?'var(--danger)':'var(--primary)')+';">'+(obtained!==null?obtained:'—')+'</td>'
+        +'<td style="padding:6px 10px;text-align:center;">'+(pct!==null?pct+'%':'—')+'</td>'
+        +'<td style="padding:6px 10px;text-align:center;font-weight:700;">'+(g?g.grade:'—')+'</td>'
+      +'</tr>';
+    });
+
+    // Summary row
+    if(anyMark) {
+      var totalPct = Math.round(totalObtained/totalMax*100);
+      var totalG = calcGPA(totalPct);
+
+      // অর্ধবার্ষিকে MT1+MT2 avg যোগ
+      var combined = totalPct;
+      if(exam.key==='half') {
+        var mt1m = er['mt1']||{}, mt2m = er['mt2']||{};
+        var mt1tot=0,mt2tot=0,mtMax=0,hasmt=false;
+        subjects.forEach(function(sub){
+          var m1=mt1m[sub],m2=mt2m[sub];
+          if(m1!==undefined&&m2!==undefined&&!isNaN(Number(m1))&&!isNaN(Number(m2))){
+            mt1tot+=Number(m1); mt2tot+=Number(m2); mtMax+=exam.maxMark; hasmt=true;
+          }
+        });
+        if(hasmt){ var mtAvgPct=Math.round((mt1tot+mt2tot)/(mtMax*2)*100); combined=Math.round((totalPct+mtAvgPct)/2); }
+      }
+      if(exam.key==='annual') {
+        var mt3m=er['mt3']||{},mt4m=er['mt4']||{};
+        var mt3tot=0,mt4tot=0,mtMax2=0,hasmt2=false;
+        subjects.forEach(function(sub){
+          var m3=mt3m[sub],m4=mt4m[sub];
+          if(m3!==undefined&&m4!==undefined&&!isNaN(Number(m3))&&!isNaN(Number(m4))){
+            mt3tot+=Number(m3); mt4tot+=Number(m4); mtMax2+=exam.maxMark; hasmt2=true;
+          }
+        });
+        if(hasmt2){ var mt34AvgPct=Math.round((mt3tot+mt4tot)/(mtMax2*2)*100); combined=Math.round((totalPct*2+mt34AvgPct)/3); }
+      }
+
+      var combG = calcGPA(combined);
+      // মেধাস্থান — same class
+      var rank = calcClassRankForExam(studentId, student.cls, exam.key, subjects);
+
+      html += '<tr style="background:var(--primary);color:#fff;font-weight:700;">'
+        +'<td style="padding:7px 10px;">সর্বমোট</td>'
+        +'<td style="padding:7px 10px;text-align:center;">'+totalMax+'</td>'
+        +'<td style="padding:7px 10px;text-align:center;">'+totalObtained+'</td>'
+        +'<td style="padding:7px 10px;text-align:center;">'+totalPct+'%'+(combined!==totalPct?' (সমন্বিত: '+combined+'%)':'')+'</td>'
+        +'<td style="padding:7px 10px;text-align:center;">GPA '+combG.gpa.toFixed(2)+' ('+combG.grade+')</td>'
+      +'</tr>'
+      +'<tr style="background:#e8f5ee;font-size:12px;">'
+        +'<td colspan="5" style="padding:6px 10px;text-align:center;color:var(--primary);font-weight:700;">🏆 শ্রেণিতে মেধাস্থান: '+(rank>0?rank+'ম':'—')+'</td>'
+      +'</tr>';
+    } else {
+      html += '<tr><td colspan="5" style="padding:10px;text-align:center;color:var(--text-muted);">এখনো মার্ক এন্ট্রি হয়নি</td></tr>';
+    }
+
+    html += '</tbody></table></div></div>';
+  });
+
+  html += '</div>';
+  document.getElementById('resultSheetBody').innerHTML = html;
+  openModal('resultSheetModal');
+}
+
+function calcClassRankForExam(studentId, cls, examKey, subjects) {
+  var students = (data.students||[]).filter(function(s){ return s.cls===cls; });
+  var scores = students.map(function(s){
+    var marks = ((data.examResults&&data.examResults[s.id])||{})[examKey]||{};
+    var tot=0, hasAny=false;
+    subjects.forEach(function(sub){
+      var m=marks[sub];
+      if(m!==undefined&&m!==''&&!isNaN(Number(m))){ tot+=Number(m); hasAny=true; }
+    });
+    return { id:s.id, total: hasAny?tot:-1 };
+  }).filter(function(x){ return x.total>=0; })
+    .sort(function(a,b){ return b.total-a.total; });
+  var idx = scores.findIndex(function(x){ return x.id===studentId; });
+  return idx>=0 ? idx+1 : 0;
+}
+
+// Mark entry modal
+function openMarkEntry(studentId, examKey) {
+  var student = (data.students||[]).find(function(s){ return s.id===studentId; });
+  if(!student) return;
+  var exam = EXAM_KEYS.find(function(e){ return e.key===examKey; });
+  var subjects = getSubjects(student.cls);
+  if(!subjects.length) { toast('এই শ্রেণিতে বিষয় নেই।','error'); return; }
+
+  var existing = ((data.examResults&&data.examResults[studentId])||{})[examKey]||{};
+
+  var m = document.createElement('div');
+  m.className = 'modal-overlay open';
+  m.id = 'markEntryModal';
+  m.innerHTML = '<div class="modal" style="max-width:480px;">'
+    +'<div class="modal-header"><span class="modal-title">✏️ '+exam.label+' — '+student.name+'</span>'
+      +'<button class="modal-close" onclick="document.getElementById(\'markEntryModal\').remove()">✕</button>'
+    +'</div>'
+    +'<div class="modal-body" style="display:flex;flex-direction:column;gap:10px;">'
+      +'<p style="font-size:12px;color:var(--text-muted);">পূর্ণমান: '+exam.maxMark+' | প্রতিটি বিষয়ে প্রাপ্ত নম্বর লিখুন।</p>'
+      +subjects.map(function(sub){
+        var val = existing[sub]!==undefined ? existing[sub] : '';
+        return '<div style="display:flex;align-items:center;gap:10px;">'
+          +'<label style="flex:1;font-size:13px;font-weight:600;">'+sub+'</label>'
+          +'<input type="number" min="0" max="'+exam.maxMark+'" value="'+val+'" '
+            +'id="me_'+sub.replace(/\s/g,'_')+'" '
+            +'style="width:90px;padding:6px;border:1px solid var(--border);border-radius:6px;font-family:inherit;font-size:13px;text-align:center;">'
+          +'<span style="font-size:12px;color:var(--text-muted);">/'+exam.maxMark+'</span>'
+        +'</div>';
+      }).join('')
+      +'<div class="btn-group" style="margin-top:6px;">'
+        +'<button class="btn btn-primary" onclick="saveMarkEntry(\''+studentId+'\',\''+examKey+'\','+JSON.stringify(subjects)+')">💾 সংরক্ষণ</button>'
+        +'<button class="btn btn-outline" onclick="document.getElementById(\'markEntryModal\').remove()">বাতিল</button>'
+      +'</div>'
+    +'</div></div>';
+  document.body.appendChild(m);
+  m.addEventListener('click', function(e){ if(e.target===m) m.remove(); });
+}
+
+function saveMarkEntry(studentId, examKey, subjects) {
+  if(!data.examResults) data.examResults = {};
+  if(!data.examResults[studentId]) data.examResults[studentId] = {};
+  var marks = {};
+  subjects.forEach(function(sub) {
+    var el = document.getElementById('me_'+sub.replace(/\s/g,'_'));
+    if(el && el.value!=='') marks[sub] = Number(el.value);
+  });
+  data.examResults[studentId][examKey] = marks;
+  save('examResults');
+  document.getElementById('markEntryModal').remove();
+  toast('মার্ক সংরক্ষিত ✅');
+  // Refresh result sheet if open
+  openResultSheet(studentId);
+}
+
+function printResultSheetModal() {
+  var body = document.getElementById('resultSheetBody');
+  var title = document.getElementById('rsModalTitle').textContent;
+  if(!body) return;
+  var w = window.open('','_blank');
+  w.document.write('<html><head><meta charset="UTF-8">'
+    +'<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Bengali&display=swap" rel="stylesheet">'
+    +'<style>body{font-family:"Noto Sans Bengali",sans-serif;padding:20px;font-size:13px;}'
+    +'table{width:100%;border-collapse:collapse;}th,td{border:1px solid #ccc;padding:6px 10px;}'
+    +'th{background:#1a4a2e;color:#fff;}@media print{button{display:none;}}</style>'
+    +'<title>'+title+'</title></head><body>'
+    +'<h2 style="color:#1a4a2e;text-align:center;">'+title+'</h2>'
+    +body.innerHTML+'</body></html>');
+  w.document.close();
+  setTimeout(function(){ w.print(); },500);
+}
+
 
 
 // ═══════════════════════════════════════════
@@ -9986,7 +11005,14 @@ var _fns = {
   approveLeaveTeacher, approveLeaveManagement, rejectLeave, renderTodayAbsent,
   verifyBirthReg, teacherApproveLeave, teacherRejectLeave, renderTeacherLeaveApproval,
   dashEditMode, resetWidgetLayout, openWidgetPicker, wgRemove, wgAdd,
+  addSubject, removeSubject, renderSubjectPerClass,
+  openDiaryModal, saveDiaryEntry, deleteDiaryEntry, renderDiary, diaryLoadSubjects,
+  openResultSheet, openMarkEntry, saveMarkEntry, printResultSheetModal,
+  rsFilterStudents,
   waSetFilter, waOpenAll, waSelectTpl, waQuickSearch, waQuickPick,
+  addSubject, removeSubject, renderSubjectPerClass,
+  renderDiary, openDiaryModal, diaryLoadSubjects, saveDiaryEntry, editDiaryEntry, deleteDiaryEntry, diaryPopulateFilters,
+  rsFilterStudents, rsPopulateFilters, openResultSheet, openExamEntry, saveExamMarks, printResultSheetModal,
 };
 Object.entries(_fns).forEach(([k,v]) => { if(typeof v === 'function') window[k] = v; });
 </script>
