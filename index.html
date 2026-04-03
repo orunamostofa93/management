@@ -608,6 +608,7 @@
     <div class="nav-section">প্রধান</div>
     <div class="nav-item" onclick="showPage('dashboard')"><span class="nav-icon">📊</span> ড্যাশবোর্ড</div>
     <div class="nav-section">শিক্ষার্থী</div>
+    <div class="nav-item" onclick="showPage('admissions')"><span class="nav-icon">📝</span> ভর্তি আবেদন <span id="admissionBadge" style="background:#c0392b;color:#fff;border-radius:10px;padding:1px 7px;font-size:10px;font-weight:700;margin-left:auto;display:none;">0</span></div>
     <div class="nav-item" onclick="showPage('students')"><span class="nav-icon">👨‍🎓</span> শিক্ষার্থী তালিকা</div>
     <div class="nav-item" onclick="showPage('fee')"><span class="nav-icon">💳</span> ফী আদায়</div>
     <div class="nav-item" onclick="showPage('attendance')"><span class="nav-icon">✅</span> উপস্থিতি</div>
@@ -1643,6 +1644,27 @@
 
     </div>
 
+
+    <!-- ======================== ADMISSION APPLICATIONS ======================== -->
+    <div id="page-admissions" class="page">
+      <div class="card">
+        <div class="card-header" style="flex-wrap:wrap;gap:10px;">
+          <span class="card-title">📝 ভর্তি আবেদন</span>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+            <select id="admFilterStatus" onchange="renderAdmissions()" style="padding:6px 10px;border:1px solid var(--border);border-radius:8px;font-family:inherit;font-size:13px;">
+              <option value="">সব আবেদন</option>
+              <option value="pending">⏳ অপেক্ষমান</option>
+              <option value="approved">✅ অনুমোদিত</option>
+              <option value="rejected">❌ বাতিল</option>
+            </select>
+            <select id="admFilterCls" onchange="renderAdmissions()" style="padding:6px 10px;border:1px solid var(--border);border-radius:8px;font-family:inherit;font-size:13px;">
+              <option value="">সব শ্রেণি</option>
+            </select>
+          </div>
+        </div>
+        <div class="card-body" id="admissionsList"></div>
+      </div>
+    </div>
 
     <!-- ======================== SUBJECTS PAGE ======================== -->
     <div id="page-subjects" class="page">
@@ -2707,6 +2729,7 @@ var data = {
   diary: [],      // [{id,date,cls,subject,teacherId,lesson,homework,createdAt}]
   examResults: {},// {studentId: {examKey: {subjectName: marks}}}
   examMeta: {},   // {studentId: {examKey: {maxMark: N}}}
+  admissionApplications: [], // [{id,name,father,mobile,cls,...,status,submittedAt}]
 };
 
 // পুরনো রেকর্ডে ইউনিক কোড না থাকলে assign করো
@@ -2757,7 +2780,7 @@ function migrateOldCodes() {
 // Firebase থেকে ডেটা লোড করুন
 async function loadFromFirebase() {
   showLoading(true);
-  const keys = ['settings','students','teachers','attendance','results','finance','notices','leaves','routine','syllabus','feePayments','staffCheckins','payrollAdj','stock','letters','onlinePayments','studentRemarks','hostelRooms','hostelAssignments','hostelMealRoutine','hostelFees','hostelLeaves','hostelMealCosts','subjects','diary','examResults','examMeta'];
+  const keys = ['settings','students','teachers','attendance','results','finance','notices','leaves','routine','syllabus','feePayments','staffCheckins','payrollAdj','stock','letters','onlinePayments','studentRemarks','hostelRooms','hostelAssignments','hostelMealRoutine','hostelFees','hostelLeaves','hostelMealCosts','subjects','diary','examResults','examMeta','admissionApplications'];
   for(const k of keys) {
     try {
       const snap = await db.collection('madrasa').doc(k).get();
@@ -2902,7 +2925,8 @@ var pageTitles = {
   results:'পরীক্ষার ফলাফল', teachers:'শিক্ষক ও স্টাফ', leave:'ছুটির আবেদন',
   routine:'ক্লাস রুটিন', syllabus:'সিলেবাস', exampaper:'প্রশ্নপত্র তৈরি',
   finance:'আয়-ব্যয় হিসাব', notice:'বিজ্ঞপ্তি', letters:'📜 পত্র ও প্রমাণপত্র', idcard:'আইডি কার্ড', settings:'সেটিংস', payroll:'💵 পে-রোল', stock:'📦 মালামাল স্টক', fee:'💳 ফী আদায়', remarks:'💬 শিক্ষার্থী মন্তব্য অনুমোদন',
-  diary:'📓 ক্লাস ডায়েরি', resultsheet:'📊 শিক্ষার্থী রেজাল্ট শিট', subjects:'📚 বিষয় ব্যবস্থাপনা'
+  diary:'📓 ক্লাস ডায়েরি', resultsheet:'📊 শিক্ষার্থী রেজাল্ট শিট', subjects:'📚 বিষয় ব্যবস্থাপনা',
+  admissions:'📝 ভর্তি আবেদন'
 };
 function showPage(id) {
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
@@ -2932,6 +2956,7 @@ function showPage(id) {
   if(id==='idcard') populateIDDropdown();
   if(id==='settings') { loadSettings(); setTimeout(function(){ switchPermTab('users'); }, 100); }
   if(id==='remarks') renderRemarksApproval();
+  if(id==='admissions') { admPopulateFilters(); renderAdmissions(); }
   if(id==='subjects') renderSubjectPage();
   if(id==='diary') { diaryPopulateFilters(); renderDiary(); }
   if(id==='resultsheet') { rsPopulateFilters(); bulkPopulateClasses(); finalPopulateClasses(); rsSwitchTab('bulk'); }
@@ -11330,6 +11355,139 @@ function printResultSheetModal() {
 
 
 
+
+
+// ═══════════════════════════════════════════
+// ADMISSION APPLICATIONS
+// ═══════════════════════════════════════════
+
+function admPopulateFilters() {
+  var sel = document.getElementById('admFilterCls');
+  if(!sel) return;
+  var classes = data.settings.classes||[];
+  sel.innerHTML = '<option value="">সব শ্রেণি</option>'
+    + classes.map(function(c){ return '<option>'+c+'</option>'; }).join('');
+}
+
+function renderAdmissions() {
+  var el = document.getElementById('admissionsList');
+  if(!el) return;
+  var filterStatus = (document.getElementById('admFilterStatus')||{}).value||'';
+  var filterCls    = (document.getElementById('admFilterCls')||{}).value||'';
+  var apps = (data.admissionApplications||[]).filter(function(a){
+    if(filterStatus && a.status!==filterStatus) return false;
+    if(filterCls && a.cls!==filterCls) return false;
+    return true;
+  }).sort(function(a,b){ return (b.submittedAt||'').localeCompare(a.submittedAt||''); });
+
+  // Update badge
+  updateAdmissionBadge();
+
+  if(!apps.length) {
+    el.innerHTML='<div style="text-align:center;padding:40px;color:var(--text-muted);">কোনো আবেদন নেই।</div>';
+    return;
+  }
+
+  el.innerHTML = '<div style="display:flex;flex-direction:column;gap:10px;">'
+    + apps.map(function(a){
+      var statusColor = a.status==='approved'?'#27ae60':a.status==='rejected'?'#c0392b':'#e67e22';
+      var statusLabel = a.status==='approved'?'✅ অনুমোদিত':a.status==='rejected'?'❌ বাতিল':'⏳ অপেক্ষমান';
+      var date = a.submittedAt ? new Date(a.submittedAt).toLocaleDateString('bn-BD') : '—';
+      return '<div style="border:1px solid var(--border);border-radius:12px;padding:16px;background:#fff;">'
+        +'<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:10px;">'
+          +'<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">'
+            +'<span style="font-weight:700;font-size:14px;">'+a.name+'</span>'
+            +'<span style="background:var(--primary-ultra-light);color:var(--primary);border-radius:6px;padding:2px 8px;font-size:12px;font-weight:600;">'+a.cls+'</span>'
+            +(a.branch?'<span style="background:#f0f0f0;border-radius:6px;padding:2px 8px;font-size:12px;">'+a.branch+'</span>':'')
+            +'<span style="background:'+statusColor+';color:#fff;border-radius:6px;padding:2px 9px;font-size:11px;font-weight:700;">'+statusLabel+'</span>'
+          +'</div>'
+          +'<div style="font-size:11px;color:var(--text-muted);">'+date+' | #'+a.id+'</div>'
+        +'</div>'
+        +'<div style="display:flex;flex-wrap:wrap;gap:12px;font-size:12px;color:var(--text-muted);margin-bottom:10px;">'
+          +'<span>👤 পিতা: <b style="color:var(--text);">'+a.father+'</b></span>'
+          +(a.mother?'<span>👩 মাতা: <b style="color:var(--text);">'+a.mother+'</b></span>':'')
+          +'<span>📞 <b style="color:var(--text);">'+a.mobile+'</b></span>'
+          +(a.hostel?'<span>🏠 '+a.hostel+'</span>':'')
+          +(a.address?'<span>📍 '+a.address+'</span>':'')
+        +'</div>'
+        +(a.note?'<div style="font-size:12px;color:var(--text-muted);background:#f8f8f8;padding:8px 10px;border-radius:6px;margin-bottom:10px;">📌 '+a.note+'</div>':'')
+        +(a.status==='pending'
+          ?'<div style="display:flex;gap:8px;flex-wrap:wrap;">'
+            +'<button onclick="admApprove(\''+a.id+'\')" style="padding:6px 16px;background:#27ae60;color:#fff;border:none;border-radius:8px;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;">✅ অনুমোদন</button>'
+            +'<button onclick="admConvert(\''+a.id+'\')" style="padding:6px 16px;background:var(--primary);color:#fff;border:none;border-radius:8px;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;">➕ শিক্ষার্থী হিসেবে ভর্তি</button>'
+            +'<button onclick="admReject(\''+a.id+'\')" style="padding:6px 16px;background:#e74c3c;color:#fff;border:none;border-radius:8px;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;">❌ বাতিল</button>'
+            +'<a href="https://wa.me/88'+a.mobile+'" target="_blank" style="padding:6px 14px;background:#25d366;color:#fff;border-radius:8px;font-size:12px;font-weight:700;text-decoration:none;display:inline-flex;align-items:center;gap:4px;">💬 WhatsApp</a>'
+          +'</div>'
+          :'<a href="https://wa.me/88'+a.mobile+'" target="_blank" style="padding:5px 12px;background:#25d366;color:#fff;border-radius:8px;font-size:12px;font-weight:700;text-decoration:none;display:inline-flex;align-items:center;gap:4px;">💬 WhatsApp যোগাযোগ</a>'
+        )
+      +'</div>';
+    }).join('')
+  +'</div>';
+}
+
+function admApprove(id) {
+  var apps = data.admissionApplications||[];
+  var app = apps.find(function(a){ return a.id===id; });
+  if(!app) return;
+  app.status = 'approved';
+  save('admissionApplications');
+  renderAdmissions();
+  updateAdmissionBadge();
+  toast('আবেদন অনুমোদিত হয়েছে ✅');
+}
+
+function admReject(id) {
+  if(!confirm('এই আবেদন বাতিল করবেন?')) return;
+  var apps = data.admissionApplications||[];
+  var app = apps.find(function(a){ return a.id===id; });
+  if(!app) return;
+  app.status = 'rejected';
+  save('admissionApplications');
+  renderAdmissions();
+  updateAdmissionBadge();
+  toast('আবেদন বাতিল করা হয়েছে।','error');
+}
+
+function admConvert(id) {
+  // Application থেকে সরাসরি student হিসেবে ভর্তি
+  var app = (data.admissionApplications||[]).find(function(a){ return a.id===id; });
+  if(!app) return;
+  // Student add modal pre-fill করুন
+  showPage('students');
+  setTimeout(function(){
+    openModal('addStudentModal');
+    setTimeout(function(){
+      var f = function(fid,val){ var el=document.getElementById(fid); if(el) el.value=val||''; };
+      f('sName', app.name);
+      f('sFather', app.father);
+      f('sMother', app.mother||'');
+      f('sMobile', app.mobile||'');
+      f('sDOB', app.dob||'');
+      f('sAddress', app.address||'');
+      var clsSel = document.getElementById('sClass');
+      if(clsSel) clsSel.value = app.cls||'';
+      if(app.branch) { var brSel=document.getElementById('sBranch'); if(brSel) brSel.value=app.branch; }
+      previewStudentCode();
+      // Mark as approved
+      app.status='approved';
+      save('admissionApplications');
+      toast('আবেদনের তথ্য ফর্মে বসানো হয়েছে। রোল নম্বর ও অন্যান্য তথ্য যোগ করে সেভ করুন।');
+    }, 400);
+  }, 300);
+}
+
+function updateAdmissionBadge() {
+  var pending = (data.admissionApplications||[]).filter(function(a){ return a.status==='pending'; }).length;
+  var badge = document.getElementById('admissionBadge');
+  if(!badge) return;
+  if(pending > 0) {
+    badge.style.display='inline-block';
+    badge.textContent = pending;
+  } else {
+    badge.style.display='none';
+  }
+}
+
 // ═══════════════════════════════════════════
 // WhatsApp Widget Logic
 // ═══════════════════════════════════════════
@@ -11596,6 +11754,7 @@ function init() {
   document.getElementById('loginInstName').textContent=data.settings.name||'মাদ্রাসা ম্যানেজমেন্ট';
   populateClassDropdowns();
   showPage('dashboard');
+  updateAdmissionBadge();
   const today=new Date().toISOString().split('T')[0];
   ['attDate','fDate','nDate','leaveFrom','leaveTo','sAdmDate','tJoin','qpDate'].forEach(id=>{
     const el=document.getElementById(id); if(el&&!el.value) el.value=today;
@@ -11671,6 +11830,7 @@ var _fns = {
   verifyBirthReg, teacherApproveLeave, teacherRejectLeave, renderTeacherLeaveApproval,
   dashEditMode, resetWidgetLayout, openWidgetPicker, wgRemove, wgAdd,
   openStudentCSVExport, csvSelectAll, downloadStudentCSV,
+  admApprove, admReject, admConvert, renderAdmissions, updateAdmissionBadge,
   addSubject, removeSubject, renderSubjectPerClass, renderSubjectPage,
   openDiaryModal, saveDiaryEntry, deleteDiaryEntry, renderDiary, diaryLoadSubjects, diaryPopulateFilters,
   openResultSheet, openMarkEntry, saveMarkEntry, printResultSheetModal,
